@@ -83,7 +83,7 @@
         </dependency>
 
 
-        <!-- 数据库连接池 -->
+        <!-- mybatis-flex相关 -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
@@ -100,6 +100,13 @@
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-processor</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- langchain4j相关 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+            <version>1.2.0-beta8</version>
         </dependency>
 
 

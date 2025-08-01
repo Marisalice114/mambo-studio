@@ -18,7 +18,7 @@ public class UserVOConverter {
 
     /**
      * 转换为登录用户VO
-     * 用于���户登录成功后返回基本信息和权限信息
+     * 用于用户登录成功后返回基本信息和权限信息
      */
     public static LoginUserVO toLoginUserVO(User user) {
         if (user == null) {
@@ -42,7 +42,7 @@ public class UserVOConverter {
 
     /**
      * 转换为用户详细VO
-     * 用于个人中心展示，用户查看自己的完整信息（不脱敏）
+     * 用于个人中心展示，包含脱敏处理的敏感信息
      */
     public static UserDetailVO toUserDetailVO(User user) {
         if (user == null) {
@@ -51,7 +51,7 @@ public class UserVOConverter {
 
         return UserDetailVO.builder()
                 .id(user.getId())
-                .userAccount(user.getUserAccount()) // 个人查看自己完整账号
+                .userAccount(user.getUserAccount())
                 .userName(user.getUserName())
                 .userAvatar(user.getUserAvatar())
                 .userProfile(user.getUserProfile())
@@ -59,7 +59,7 @@ public class UserVOConverter {
                 .createTime(user.getCreateTime())
                 .updateTime(user.getUpdateTime())
                 .vipExpireTime(user.getVipExpireTime())
-                .vipNumber(user.getVipNumber()) // 个人查看自己完整VIP编号，不脱敏
+                .vipNumber(user.getVipNumber()) // Ensure vipNumber is converted to String
                 .shareCode(user.getShareCode())
                 .hasInviter(user.getInviteUser() != null)
                 .isVip(isVipUser(user))
@@ -87,7 +87,7 @@ public class UserVOConverter {
 
     /**
      * 转换为管理员用户VO
-     * 用于后台管理，展示用户信息但不包含密码
+     * 用于后台管理，展示完整的用户信息
      */
     public static UserAdminVO toUserAdminVO(User user) {
         if (user == null) {
@@ -96,7 +96,7 @@ public class UserVOConverter {
 
         return UserAdminVO.builder()
                 .id(user.getId())
-                .userAccount(user.getUserAccount()) // 管理员可见用户账号
+                .userAccount(user.getUserAccount())
                 .userName(user.getUserName())
                 .userAvatar(user.getUserAvatar())
                 .userRole(user.getUserRole())
@@ -104,7 +104,7 @@ public class UserVOConverter {
                 .updateTime(user.getUpdateTime())
                 .editTime(user.getEditTime())
                 .vipExpireTime(user.getVipExpireTime())
-                .vipNumber(user.getVipNumber()) // 管理员可见完整VIP编号
+                .vipNumber(user.getVipNumber())
                 .inviteUser(user.getInviteUser())
                 .isVip(isVipUser(user))
                 .build();
@@ -118,5 +118,20 @@ public class UserVOConverter {
             return false;
         }
         return user.getVipExpireTime().isAfter(LocalDateTime.now());
+    }
+
+    /**
+     * 脱敏处理VIP编号
+     * 保留前2位和后2位，中间用*替代
+     */
+    private static String maskVipNumber(Long vipNumber) {
+        if (vipNumber == null) {
+            return null;
+        }
+        String vipStr = vipNumber.toString();
+        if (vipStr.length() <= 4) {
+            return vipStr;
+        }
+        return vipStr.substring(0, 2) + "****" + vipStr.substring(vipStr.length() - 2);
     }
 }

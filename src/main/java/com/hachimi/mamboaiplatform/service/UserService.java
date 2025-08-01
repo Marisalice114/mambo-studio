@@ -98,4 +98,3 @@ public interface UserService extends IService<User> {
      */
     List<UserPublicVO> getUserPublicVOList(List<User> userList);
 }
-
