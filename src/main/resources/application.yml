@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: mambo-code-platform
+server:
+  port: 8234
+  servlet:
+    context-path: /api
+
+
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.hachimi.mamboaiplatform.controller
+# knife4j的增强配置，不需要增强可以不配
+knife4j:
+  enable: false
+  setting:
+    language: zh_cn
