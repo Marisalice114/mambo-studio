@@ -5,7 +5,7 @@ import com.hachimi.mamboaiplatform.annotation.AuthCheck;
 import com.hachimi.mamboaiplatform.common.BaseResponse;
 
 import com.hachimi.mamboaiplatform.common.ResultUtils;
-import com.hachimi.mamboaiplatform.entity.User;
+import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.exception.ThrowUtils;

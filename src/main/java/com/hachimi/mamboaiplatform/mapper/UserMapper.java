@@ -1,6 +1,6 @@
 package com.hachimi.mamboaiplatform.mapper;
 
-import com.hachimi.mamboaiplatform.entity.User;
+import com.hachimi.mamboaiplatform.model.entity.User;
 import com.mybatisflex.core.BaseMapper;
 
 /**

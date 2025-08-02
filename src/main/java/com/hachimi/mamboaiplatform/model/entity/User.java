@@ -1,4 +1,4 @@
-package com.hachimi.mamboaiplatform.entity;
+package com.hachimi.mamboaiplatform.model.entity;
 
 import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;

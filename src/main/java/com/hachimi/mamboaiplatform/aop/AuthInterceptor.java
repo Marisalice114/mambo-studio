@@ -2,7 +2,7 @@ package com.hachimi.mamboaiplatform.aop;
 
 
 import com.hachimi.mamboaiplatform.annotation.AuthCheck;
-import com.hachimi.mamboaiplatform.entity.User;
+import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.service.UserService;

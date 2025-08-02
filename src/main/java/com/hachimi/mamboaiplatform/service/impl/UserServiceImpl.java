@@ -1,7 +1,7 @@
 package com.hachimi.mamboaiplatform.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.hachimi.mamboaiplatform.entity.User;
+import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.mapper.UserMapper;

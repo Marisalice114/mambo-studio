@@ -1,6 +1,6 @@
 package com.hachimi.mamboaiplatform.utils;
 
-import com.hachimi.mamboaiplatform.entity.User;
+import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.vo.LoginUserVO;
 import com.hachimi.mamboaiplatform.model.vo.UserAdminVO;
 import com.hachimi.mamboaiplatform.model.vo.UserDetailVO;

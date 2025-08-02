@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   application:
     name: mambo-code-platform
   # mysql
