@@ -12,10 +12,7 @@ import com.hachimi.mamboaiplatform.constant.UserConstant;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.exception.ThrowUtils;
-import com.hachimi.mamboaiplatform.model.dto.app.AppAddRequest;
-import com.hachimi.mamboaiplatform.model.dto.app.AppAdminUpdateRequest;
-import com.hachimi.mamboaiplatform.model.dto.app.AppQueryRequest;
-import com.hachimi.mamboaiplatform.model.dto.app.AppUpdateRequest;
+import com.hachimi.mamboaiplatform.model.dto.app.*;
 import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 import com.hachimi.mamboaiplatform.model.vo.AppVO;
@@ -320,5 +317,20 @@ public class AppController {
         });
     }
 
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest,
+                                          HttpServletRequest request
+                ) {
+        ThrowUtils.throwIf(appDeployRequest == null , ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        // 获取当前用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务部署应用
+        String deployUrl = appService.deployApp(appId, loginUser);
+        // 返回部署结果
+        return ResultUtils.success(deployUrl);
 
+    }
 }

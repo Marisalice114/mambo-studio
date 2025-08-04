@@ -2,8 +2,9 @@ package com.hachimi.mamboaiplatform.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
-import com.hachimi.mamboaiplatform.ai.AiCodeGeneratorService;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
@@ -23,11 +24,15 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.hachimi.mamboaiplatform.constant.AppConstant.*;
 
 /**
  * 应用 服务层实现。
@@ -135,6 +140,62 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 6. 调用 AI 生成代码
         return aiCodeGeneratorFacade.generateCodeAndSaveStream(message, codeGenTypeEnum, appId);
     }
+
+    /**
+     * 应用部署
+     * @param appId
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public String deployApp(Long appId, User loginUser){
+        // 1.参数校验
+        if( appId == null || appId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        }
+        if( loginUser == null || loginUser.getId() == null || loginUser.getId() <= 0) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "用户未登录或登录信息不完整");
+        }
+        // 2.查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 3.验证应用部署权限，只有本人才能部署应用
+        if( !app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
+        }
+        // 4.验证应用是否为vip专属，并且检验用户是否为vip
+        if ( app.getIsVipOnly() && !userService.isVip(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "该应用为 VIP 专属应用，请先开通 VIP");
+        }
+        // 5.检查是否有deploykey(6位大小写字母+数字),没有则生成
+        String deployKey = app.getDeployKey();
+        if (StrUtil.isBlank(deployKey)) {
+            deployKey = RandomUtil.randomString(6);
+        }
+        // 6.获取代码生成类型，构建源目录路径
+        String codeGenTypeStr = app.getCodeGenType();
+        String sourceDirName = codeGenTypeStr + "_" + appId;
+        String sourceDirPath = CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName; // 注意分割
+        // 7.检查源目录是否存在
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码生成目录不存在，请先生成代码");
+        }
+        // 8.复制文件到部署目录
+        String deployDirPath = CODE_DEPLOY_ROOT_DIR + File.separator + deployKey ;
+        FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+        // 9.更新应用的deploykey和部署时间
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey(deployKey);
+        updateApp.setUpdateTime(LocalDateTime.now());
+        // 调用保存
+        this.updateById(updateApp);
+        // 10.返回访问的url
+        // 注意这里一定要带上/ 不然无法触发重定向
+        return String.format("%s/%s/", CODE_DEPLOY_HOST, deployKey);
+    }
+
 
 
 
