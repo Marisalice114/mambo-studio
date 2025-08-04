@@ -1,0 +1,23 @@
+package com.hachimi.mamboaiplatform.service;
+
+import com.hachimi.mamboaiplatform.model.dto.app.AppQueryRequest;
+import com.hachimi.mamboaiplatform.model.entity.App;
+import com.hachimi.mamboaiplatform.model.vo.AppVO;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.service.IService;
+
+import java.util.List;
+
+/**
+ * 应用 服务层。
+ *
+ * @author <a href="https://github.com/Marisalice114">Marisalice114</a>
+ */
+public interface AppService extends IService<App> {
+
+    AppVO getAppVO(App app);
+
+    QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
+
+    List<AppVO> getAppVOList(List<App> appList);
+}
