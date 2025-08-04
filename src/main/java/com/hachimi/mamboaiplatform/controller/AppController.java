@@ -2,6 +2,7 @@ package com.hachimi.mamboaiplatform.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.hachimi.mamboaiplatform.annotation.AuthCheck;
 import com.hachimi.mamboaiplatform.common.BaseResponse;
 import com.hachimi.mamboaiplatform.common.DeleteRequest;
@@ -22,18 +23,19 @@ import com.hachimi.mamboaiplatform.service.AppService;
 import com.hachimi.mamboaiplatform.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.MediaType;
+
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.*;
 import com.hachimi.mamboaiplatform.model.entity.App;
-import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 应用 控制层。
@@ -285,6 +287,37 @@ public class AppController {
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 获取封装类
         return ResultUtils.success(appService.getAppVO(app));
+    }
+
+
+    /**
+     * 应用聊天生成代码（流式 SSE）
+     *
+     * @param appId   应用 ID
+     * @param message 用户消息
+     * @param request 请求对象
+     * @return 生成结果流
+     */
+    @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
+                                               @RequestParam String message,
+                                               HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务生成代码（流式）
+        Flux<String> stringFlux = appService.chatToGenCode(appId, message, loginUser);
+        // 对这个流式结果进行一层封装，防止空格的丢失
+        return stringFlux.map(chunk -> {
+            //快速构造一个map
+            Map<String, String> resultMap = Map.of("d",chunk);
+            String jsonData = JSONUtil.toJsonStr(resultMap);
+            return ServerSentEvent.<String>builder()
+                    .data(jsonData)
+                    .build();
+        });
     }
 
 

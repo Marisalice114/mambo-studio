@@ -106,5 +106,10 @@ public interface UserService extends IService<User> {
      */
     int batchUpdateExpiredVipStatus();
 
+    /**
+     * 判断用户是不是vip
+     *
+     * @return 0 - 非vip 1 - vip
+     */
     boolean isVip(User user);
 }

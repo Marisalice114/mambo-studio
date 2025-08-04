@@ -18,14 +18,14 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void generateAndSaveCode() {
-        File file = aiCodeGeneratorFacade.generateCodeAndSave("帮我生成一个任务记录网站，使用不超过30行代码完成", CodeGenTypeEnum.MULTI_FILE);
+        File file = aiCodeGeneratorFacade.generateCodeAndSave("帮我生成一个任务记录网站，使用不超过30行代码完成", CodeGenTypeEnum.MULTI_FILE,1L);
         Assertions.assertNotNull(file);
     }
 
 
     @Test
     void generateAndSaveCodeStream() {
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateCodeAndSaveStream("帮我生成一个任务记录网站，使用不超过30行代码完成", CodeGenTypeEnum.MULTI_FILE);
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateCodeAndSaveStream("帮我生成一个任务记录网站，使用不超过30行代码完成", CodeGenTypeEnum.MULTI_FILE,2L);
         // 阻塞等待所有数据收集完成
         List<String> result = codeStream.collectList().block();
         // 验证结果

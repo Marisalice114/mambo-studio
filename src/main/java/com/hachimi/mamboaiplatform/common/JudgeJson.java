@@ -1,32 +1,37 @@
-package com.hachimi.mamboaiplatform.core.parser;
+package com.hachimi.mamboaiplatform.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
+/**
+ * JSON处理工具类
+ */
 @Slf4j
-@Component
-@Data
 public class JudgeJson {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    /**
+     * 获取ObjectMapper实例
+     */
+    public static ObjectMapper getObjectMapper() {
+        return OBJECT_MAPPER;
+    }
 
     /**
      * 判断响应是否为JSON格式
      */
-    boolean isJsonFormat(String response) {
+    public static boolean isJsonFormat(String response) {
         try {
             // 尝试提取JSON内容
             String jsonContent = extractJsonFromResponse(response);
-            objectMapper.readTree(jsonContent);
+            OBJECT_MAPPER.readTree(jsonContent);
             return true;
         } catch (Exception e) {
             return false;
@@ -37,10 +42,10 @@ public class JudgeJson {
      * 从AI响应中提取JSON内容
      * 支持从AI的complete response中提取content字段中的JSON
      */
-    String extractJsonFromResponse(String response) {
+    public static String extractJsonFromResponse(String response) {
         try {
             // 首先尝试解析整个响应作为JSON（适用于AI API的完整响应）
-            JsonNode responseNode = objectMapper.readTree(response);
+            JsonNode responseNode = OBJECT_MAPPER.readTree(response);
 
             // 检查是否是AI API的响应格式
             if (responseNode.has("choices")) {
@@ -70,7 +75,7 @@ public class JudgeJson {
     /**
      * 从内容字符串中提取JSON
      */
-    private String extractJsonFromContent(String content) {
+    private static String extractJsonFromContent(String content) {
         // 查找JSON开始和结束位置
         int jsonStart = content.indexOf("{");
         int jsonEnd = content.lastIndexOf("}");
@@ -85,7 +90,7 @@ public class JudgeJson {
     /**
      * 安全地从JSON节点获取字符串值
      */
-    String getJsonValue(JsonNode jsonNode, String fieldName) {
+    public static String getJsonValue(JsonNode jsonNode, String fieldName) {
         JsonNode fieldNode = jsonNode.get(fieldName);
         if (fieldNode == null || fieldNode.isNull()) {
             return null;
@@ -96,7 +101,7 @@ public class JudgeJson {
     /**
      * 从响应中提取指定类型的代码块
      */
-    String extractCodeBlock(String response, Pattern pattern, String codeType) {
+    public static String extractCodeBlock(String response, Pattern pattern, String codeType) {
         Matcher matcher = pattern.matcher(response);
         if (matcher.find()) {
             String code = matcher.group(1).trim();
@@ -112,12 +117,12 @@ public class JudgeJson {
      * 提取描述信息
      * 通常是代码块之外的文本内容
      */
-    String extractDescription(String response) {
+    public static String extractDescription(String response) {
         try {
             // 移除所有代码块，剩下的就是描述性文本
             String description = response
                     .replaceAll("```[\\s\\S]*?```", "") // 移除所有代码块
-                    .replaceAll("#{1,6}\\s*[^\\n]*", "") // 秘移除markdown标题
+                    .replaceAll("#{1,6}\\s*[^\\n]*", "") // 移除markdown标题
                     .trim();
 
             // 如果描述太长，截取前500个字符
