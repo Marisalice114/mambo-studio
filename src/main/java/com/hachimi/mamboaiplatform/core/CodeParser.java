@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
  */
 @Component
 @Slf4j
+@Deprecated
 public class CodeParser {
 
     private final ObjectMapper objectMapper = new ObjectMapper();

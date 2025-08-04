@@ -10,9 +10,12 @@ import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+
+
 /**
  * 将代码文件保存到本地的目录
  */
+@Deprecated
 public class CodeFileSaver {
     // 文件根目录设置
     private static final String BASE_DIR = System.getProperty("user.dir") + "/tmp/code_output";
