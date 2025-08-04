@@ -9,7 +9,7 @@ create table if not exists user
     userAvatar   varchar(1024)                          null comment '用户头像',
     userProfile  varchar(512)                           null comment '用户简介',
     userRole     varchar(256) default 'user'            not null comment '用户角色：user/admin',
-    editTime     datetime     default CURRENT_TIMESTAMP not null comment '编辑时间',
+    editTime     datetime     default CURRENT_TIMESTAMP not null comment '���辑时间',
     createTime   datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete     tinyint      default 0                 not null comment '是否删除',
@@ -19,10 +19,11 @@ create table if not exists user
 -- 拓展
 ALTER TABLE user
 ADD COLUMN vipExpireTime datetime NULL COMMENT '会员过期时间',
-ADD COLUMN vipCode varchar(128) NULL COMMENT '会员兑换码',
 ADD COLUMN vipNumber bigint NULL COMMENT '会员编号',
 ADD COLUMN shareCode varchar(20) DEFAULT NULL COMMENT '分享码',
-ADD COLUMN inviteUser bigint DEFAULT NULL COMMENT '邀请用户 id';
+ADD COLUMN inviteUser bigint DEFAULT NULL COMMENT '邀请用户 id',
+ADD COLUMN isVip tinyint DEFAULT 0 NOT NULL COMMENT 'VIP状态缓存（0-否，1-是）',
+ADD INDEX idx_isVip (isVip);
 
 -- 应用表
 create table if not exists app
@@ -36,11 +37,13 @@ create table if not exists app
     deployedTime datetime                           null comment '部署时间',
     priority     int      default 0                 not null comment '优先级',
     userId       bigint                             not null comment '创建用户id',
+    isVipOnly    tinyint  default 0                 null comment '是否为VIP专属应用（0-否，1-是）',
     editTime     datetime default CURRENT_TIMESTAMP not null comment '编辑时间',
     createTime   datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime   datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete     tinyint  default 0                 not null comment '是否删除',
     UNIQUE KEY uk_deployKey (deployKey), -- 确保部署标识唯一
     INDEX idx_appName (appName),         -- 提升基于应用名称的查询性能
-    INDEX idx_userId (userId)            -- 提升基于用户 ID 的查询性能
+    INDEX idx_userId (userId),           -- 提升基于用户 ID 的查询性能
+    INDEX idx_isVipOnly (isVipOnly)      -- 提升基于VIP专属的查询性能
 ) comment '应用' collate = utf8mb4_unicode_ci;

@@ -16,6 +16,7 @@ import com.hachimi.mamboaiplatform.utils.UserVOConverter;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -35,6 +36,7 @@ import static com.mybatisflex.core.query.QueryMethods.column;
  * @author <a href="https://github.com/Marisalice114">Marisalice114</a>
  */
 @Service
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements UserService {
 
     @Override
@@ -80,7 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     private String getEncryptedPassword(String userPassword) {
         //加密
-        //设置盐值，来混淆密码
+        //设置��值，���混淆密码
         final String SALT = "mambo_1919810";
 //        return BCrypt.hashpw(userPassword, salt); //需要按照规则来指定盐值
         return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -95,7 +97,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     }
 
     /**
-     * 转换为用户详细VO（个人中心版本）
+     * 转换为用户详细VO（个人��心版本）
      */
     @Override
     public UserDetailVO getUserDetailVO(User user) {
@@ -142,7 +144,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
         // 3. 记录用户的登录态
-        // 这里相当于是给session开辟了一块完整的存储空间，来任意存储���息
+        // 这里相当于是给session开辟了一块完整的存储���间，来任意存储���息
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 4. 获得脱敏后的用户信息
         return this.getLoginUserVO(user);
@@ -263,5 +265,130 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return userList.stream()
                 .map(this::getUserPublicVO)
                 .collect(Collectors.toList());
+    }
+
+
+
+    @Override
+    public int batchUpdateExpiredVipStatus() {
+        log.info("开始执行VIP状态批量更新任务");
+
+        try {
+            int totalUpdated = 0;
+
+            // 第一部分：处理过期VIP用户（状态为VIP但已过期）
+            QueryWrapper expiredVipQuery = QueryWrapper.create()
+                    .where(column("isVip").eq(true))  // 当前状态为VIP
+                    .and(column("vipExpireTime").isNotNull())  // 有过期时间
+                    .and(column("vipExpireTime").le(LocalDateTime.now()));  // 已过期
+
+            List<User> expiredVipUsers = this.list(expiredVipQuery);
+
+            if (!expiredVipUsers.isEmpty()) {
+                // 批量更新过期VIP用户状态为非VIP
+                for (User user : expiredVipUsers) {
+                    user.setIsVip(false);
+                }
+
+                boolean expiredUpdateResult = this.updateBatch(expiredVipUsers);
+                if (expiredUpdateResult) {
+                    totalUpdated += expiredVipUsers.size();
+                    log.info("成功更新 {} 个过期VIP用户状态为false", expiredVipUsers.size());
+                }
+            }
+
+            // 第二部分：处理新VIP用户（有效期内但状态为非VIP）
+            QueryWrapper newVipQuery = QueryWrapper.create()
+                    .where(column("isVip").eq(false).or(column("isVip").isNull()))  // 当前状态为非VIP或null
+                    .and(column("vipExpireTime").isNotNull())  // 有过期时间
+                    .and(column("vipExpireTime").gt(LocalDateTime.now()));  // 未过期
+
+            List<User> newVipUsers = this.list(newVipQuery);
+
+            if (!newVipUsers.isEmpty()) {
+                // 批量更新新VIP用户状态为VIP
+                for (User user : newVipUsers) {
+                    user.setIsVip(true);
+                }
+
+                boolean newVipUpdateResult = this.updateBatch(newVipUsers);
+                if (newVipUpdateResult) {
+                    totalUpdated += newVipUsers.size();
+                    log.info("成功更新 {} 个新VIP用户状态为true", newVipUsers.size());
+                }
+            }
+
+            if (totalUpdated == 0) {
+                log.info("没有发现需要更新的VIP状态不一致用户");
+            } else {
+                log.info("VIP状态批量更新任务完成，共更新 {} 个用户", totalUpdated);
+            }
+
+            return totalUpdated;
+
+        } catch (Exception e) {
+            log.error("执行VIP状态批量更新任务时发生异常", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public boolean isVip(User user) {
+        if (user == null) {
+            return false;
+        }
+
+        // 第一步：检查缓存的VIP状态
+        Boolean cachedVipStatus = user.getIsVip();
+        LocalDateTime vipExpireTime = user.getVipExpireTime();
+
+        // 如果没有过期时间，直接返回缓存状态（通常为false）
+        if (vipExpireTime == null) {
+            // 如果缓存状态为true但没有过期时间，说明数据异常，需要修正
+            if (Boolean.TRUE.equals(cachedVipStatus)) {
+                updateUserVipStatus(user, false);
+                return false;
+            }
+            return Boolean.TRUE.equals(cachedVipStatus);
+        }
+
+        // 第二步：实时校验过期时间
+        boolean shouldBeVip = vipExpireTime.isAfter(LocalDateTime.now());
+
+        // 第三步：检查缓存状态与实际状态是否一致
+        if (!java.util.Objects.equals(cachedVipStatus, shouldBeVip)) {
+            // 状态不一致，立即更新缓存状态
+            log.warn("用户 {} 的VIP状态缓存不一致，缓存：{}，实际：{}，立即更新",
+                    user.getId(), cachedVipStatus, shouldBeVip);
+            updateUserVipStatus(user, shouldBeVip);
+            return shouldBeVip;
+        }
+
+        // 状态一致，返回实际状态
+        return shouldBeVip;
+    }
+
+    /**
+     * 更新单个用户的VIP状态
+     *
+     * @param user 用户对象
+     * @param isVip 新的VIP状态
+     */
+    private void updateUserVipStatus(User user, boolean isVip) {
+        try {
+            User updateUser = new User();
+            updateUser.setId(user.getId());
+            updateUser.setIsVip(isVip);
+            boolean result = this.updateById(updateUser);
+            if (result) {
+                // 同步更新内存中的用户对象
+                user.setIsVip(isVip);
+                log.info("用户 {} VIP状态已更新为：{}", user.getId(), isVip);
+            } else {
+                log.error("更新用户 {} VIP状态失败", user.getId());
+            }
+        } catch (Exception e) {
+            log.error("更新用户 {} VIP状态时发生异常：{}", user.getId(), e.getMessage(), e);
+        }
     }
 }

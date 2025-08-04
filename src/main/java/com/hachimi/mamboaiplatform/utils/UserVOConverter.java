@@ -67,7 +67,7 @@ public class UserVOConverter {
     }
 
     /**
-     * 转换为用户公开信息VO
+     * 转换���用户公开信息VO
      * 用于查看其他用户的公开信息，只包含非敏感数据
      */
     public static UserPublicVO toUserPublicVO(User user) {
@@ -112,12 +112,34 @@ public class UserVOConverter {
 
     /**
      * 判断用户是否为VIP
+     * 使用混合策略：优先检查缓存状态，然后实时校验过期时间
      */
     private static Boolean isVipUser(User user) {
-        if (user == null || user.getVipExpireTime() == null) {
+        if (user == null) {
             return false;
         }
-        return user.getVipExpireTime().isAfter(LocalDateTime.now());
+
+        // 第一步：检查缓存的VIP状态
+        Boolean cachedVipStatus = user.getIsVip();
+        LocalDateTime vipExpireTime = user.getVipExpireTime();
+
+        // 如果没有过期时间，直接返回缓存状态（通常为false）
+        if (vipExpireTime == null) {
+            return Boolean.TRUE.equals(cachedVipStatus);
+        }
+
+        // 第二步：实时校验过期时间
+        boolean shouldBeVip = vipExpireTime.isAfter(LocalDateTime.now());
+
+        // 第三步：检查缓存状态与实际状态是否一致
+        if (!java.util.Objects.equals(cachedVipStatus, shouldBeVip)) {
+            // 注意：这里只记录警告，不直接更新数据库，避免在VO转换时产生副作用
+            // 数据库更新由 UserService.isVip() 方法或定时任务处理
+            System.out.println("用户 " + user.getId() + " 的VIP状态缓存不一致，缓存：" + cachedVipStatus + "，实际：" + shouldBeVip + "，建议通过定时任务或实时校验更新");
+        }
+
+        // 返回实际状态（基于过期时间的实时计算）
+        return shouldBeVip;
     }
 
     /**

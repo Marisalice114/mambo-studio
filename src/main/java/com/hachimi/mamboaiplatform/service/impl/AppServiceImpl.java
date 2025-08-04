@@ -65,6 +65,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         Long userId = appQueryRequest.getUserId();
         String sortField = appQueryRequest.getSortField();
         String sortOrder = appQueryRequest.getSortOrder();
+        Boolean isVipOnly = appQueryRequest.getIsVipOnly();
+        // 使用正确的 MyBatis-Flex QueryWrapper 语法
+        // MyBatis-Flex 会自动忽略 null 值，无需手动判断
         return QueryWrapper.create()
                 .eq("id", id)
                 .like("appName", appName)
@@ -74,6 +77,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
                 .eq("deployKey", deployKey)
                 .eq("priority", priority)
                 .eq("userId", userId)
+                .eq("isVipOnly", isVipOnly)
                 .orderBy(sortField, "ascend".equals(sortOrder));
     }
 
@@ -98,3 +102,4 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
 
 }
+

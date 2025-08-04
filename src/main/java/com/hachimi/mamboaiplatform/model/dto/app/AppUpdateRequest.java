@@ -17,6 +17,15 @@ public class AppUpdateRequest implements Serializable {
      */
     private String appName;
 
+    /**
+     * 优先级
+     */
+    private Integer priority;
+
+    /**
+     * 是否为VIP专属应用（null-不限制，true-是，false-否）
+     */
+    private Boolean isVipOnly;
+
     private static final long serialVersionUID = 1L;
 }
-

@@ -97,4 +97,14 @@ public interface UserService extends IService<User> {
      * 批量转换为用户公开信息VO列表
      */
     List<UserPublicVO> getUserPublicVOList(List<User> userList);
+
+
+    /**
+     * 批量更新过期VIP用户状态
+     *
+     * @return 更新的用户数量
+     */
+    int batchUpdateExpiredVipStatus();
+
+    boolean isVip(User user);
 }

@@ -50,6 +50,10 @@ public class AppQueryRequest extends PageRequest implements Serializable {
      */
     private Long userId;
 
+    /**
+     * 是否为VIP专属应用（null-不限制，true-是，false-否）
+     */
+    private Boolean isVipOnly;
+
     private static final long serialVersionUID = 1L;
 }
-

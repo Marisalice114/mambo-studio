@@ -12,6 +12,15 @@ public class AppAddRequest implements Serializable {
      */
     private String initPrompt;
 
+    /**
+     * 代码生成类型（枚举）
+     */
+    private String codeGenType;
+
+    /**
+     * 是否为VIP专属应用（null-不限制，true-是，false-否）
+     */
+    private Boolean isVipOnly;
+
     private static final long serialVersionUID = 1L;
 }
-

@@ -54,6 +54,11 @@ public class AppVO implements Serializable {
     private Long userId;
 
     /**
+     * 是否为VIP专属应用（null-不限制，true-是，false-否）
+     */
+    private Boolean isVipOnly;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
@@ -64,7 +69,7 @@ public class AppVO implements Serializable {
     private LocalDateTime updateTime;
 
     /**
-     * 创建用户信息
+     * 创建用户信息（公开信息）
      */
     private UserPublicVO user;
 
