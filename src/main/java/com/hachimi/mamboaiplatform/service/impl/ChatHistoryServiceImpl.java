@@ -1,5 +1,6 @@
 package com.hachimi.mamboaiplatform.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hachimi.mamboaiplatform.constant.UserConstant;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
@@ -16,11 +17,16 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.hachimi.mamboaiplatform.model.entity.ChatHistory;
 import com.hachimi.mamboaiplatform.mapper.ChatHistoryMapper;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 对话历史 服务层实现。
@@ -28,6 +34,7 @@ import java.time.LocalDateTime;
  * @author <a href="https://github.com/Marisalice114">Marisalice114</a>
  */
 @Service
+@Slf4j
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory>  implements ChatHistoryService{
 
 
@@ -139,6 +146,39 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         return this.page(Page.of(1, pageSize), queryWrapper);
     }
 
+    @Override
+    public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount){
+        try {
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId) //直接获取chathistory类中的属性名
+                    .orderBy(ChatHistory::getCreateTime, true)
+                    .limit(1,maxCount); //
+            List<ChatHistory> historyList = this.list(queryWrapper);
+            if (CollUtil.isEmpty(historyList)){
+                return 0; // 没有历史记录
+            }
+            // 顺序需要进行翻转，越早的消息是要在越上面的，但是这里查询是从最新的开始查询的，所以需要反转
+            historyList = historyList.reversed();
+            int loadedCount = 0;
+            // 清理历史缓存，防止重复加载
+            chatMemory.clear();
+            for (ChatHistory chatHistory : historyList) {
+                if (ChatHistoryMessageTypeEnum.USER.getValue().equals(chatHistory.getMessageType())) {
+                    chatMemory.add(UserMessage.from(chatHistory.getMessage()));
+                } else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(chatHistory.getMessageType())) {
+                    chatMemory.add(AiMessage.from(chatHistory.getMessage()));
+                }
+                loadedCount++;
+            }
+            log.info("为应用ID={}加载对话历史记录，共{}条", appId, loadedCount);
+            return loadedCount;
+        } catch (Exception e) {
+            // 这里不能直接抛异常 不能因为对话失败就直接导致整个请求失败
+            log.error( "为应用ID={}加载对话历史记录失败，原因={}", appId, e.getMessage());
+            return 0;
+        }
+
+    }
 
 
 }

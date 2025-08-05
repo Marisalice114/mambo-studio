@@ -81,6 +81,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+        <!-- 本地缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
 
 
         <!-- mybatis-flex相关 -->
@@ -102,26 +108,27 @@
             <scope>provided</scope>
         </dependency>
 
+
         <!-- langchain4j相关 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
-            <version>1.2.0-beta8</version>
+            <version>1.1.0-beta7</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
-            <version>1.2.0</version>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-reactor</artifactId>
-            <version>1.2.0-beta8</version>
+            <version>1.1.0-beta7</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
-            <version>1.2.0-beta8</version>
+            <version>1.1.0-beta7</version>
         </dependency>
 
 

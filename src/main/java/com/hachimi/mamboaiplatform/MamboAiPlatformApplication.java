@@ -6,7 +6,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        dev.langchain4j.community.store.embedding.redis.spring.RedisEmbeddingStoreAutoConfiguration.class
+})
 @EnableAspectJAutoProxy(exposeProxy = true)
 //可在业务逻辑中获取当前的代理对象
 @MapperScan("com.hachimi.mamboaiplatform.mapper")
