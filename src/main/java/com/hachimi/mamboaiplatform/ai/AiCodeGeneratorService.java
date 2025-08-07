@@ -5,6 +5,7 @@ import com.hachimi.mamboaiplatform.ai.model.HtmlCodeResult;
 import com.hachimi.mamboaiplatform.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -53,6 +54,6 @@ public interface AiCodeGeneratorService {
      * @return 生成的代码结果
      */
     @SystemMessage(fromResource = "prompt/codegen-vue-system-prompt.txt")
-    Flux<String> generateVueCodeStream(@MemoryId Long appId,@UserMessage String userMessage); //不用自己维护appId
+    TokenStream generateVueCodeStream(@MemoryId Long appId, @UserMessage String userMessage); //不用自己维护appId
 }
 

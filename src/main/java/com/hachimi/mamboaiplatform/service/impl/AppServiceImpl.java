@@ -6,6 +6,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
+import com.hachimi.mamboaiplatform.core.handler.StreamHandlerExecutor;
 import com.hachimi.mamboaiplatform.core.parser.CodeParserExecutor;
 import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
@@ -58,6 +59,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -153,33 +157,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         // 7. 调用 AI 生成代码，并返回结果流
         Flux<String> stringFlux = aiCodeGeneratorFacade.generateCodeAndSaveStream(message, codeGenTypeEnum, appId);
-        // 8. 订阅结果流，在收到所有ai消息后，保存到数据库中
-        StringBuilder aiMessageBuilder = new StringBuilder();
-        return stringFlux.map(chunk -> {
-            // 实时收集代码片段
-            aiMessageBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-            try {
-                // 流式返回完成后保存代码
-                String aiMessage = aiMessageBuilder.toString();
-                if (StrUtil.isNotBlank(aiMessage)) {
-                    chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                }
-            } catch (Exception e) {
-                log.error("doOnComplete保存失败: {}", e.getMessage());
-            }
-        }).doOnError(error -> {
-            try {
-                // 流式返回完成后保存代码
-                String errorMessage = "AI 回复失败: " + error.getMessage();
-                if (StrUtil.isNotBlank(errorMessage)) {
-                    chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                }
-            } catch (Exception e) {
-                log.error("doOnError保存失败: {}", e.getMessage());
-            }
-        });
+        // 8.收集响应内容并在完成过后记录到对话历史中
+        return streamHandlerExecutor.doExecutor(stringFlux, codeGenTypeEnum,chatHistoryService, appId, loginUser);
+
+
     }
 
     /**
