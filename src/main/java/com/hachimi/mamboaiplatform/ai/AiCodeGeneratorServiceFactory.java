@@ -113,7 +113,6 @@ public class AiCodeGeneratorServiceFactory {
             case VUE ->
                 AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
-                    .chatModel(chatModel)
                         //必须为每个memoryId绑定对话记忆
                     .chatMemoryProvider(memoryId -> chatMemory)
                     .tools(new FileWriteTool())

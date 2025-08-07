@@ -9,6 +9,7 @@ import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
+import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,7 @@ public class AiCodeGeneratorFacade {
         //通过工厂来获得aiservice
 //        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId,codeGenTypeEnum);
+
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -79,12 +81,7 @@ public class AiCodeGeneratorFacade {
             }
             case VUE -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateVueCodeStream(appId,userMessage);
-                // VUE 项目通过工具自动保存，只返回流式响应，不进行额外处理
-                yield codeStream.doOnComplete(() -> {
-                    log.info("VUE 项目生成完成，文件已通过工具自动保存到 vue_project_{} 目录", appId);
-                }).doOnError(error -> {
-                    log.error("VUE 项目生成失败: {}", error.getMessage());
-                });
+                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE,appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
