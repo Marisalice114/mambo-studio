@@ -11,28 +11,30 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Slf4j
+/**
+ * 代码解析执行器
+ * 根据代码生成类型执行相应的解析逻辑
+ *
+ * @author Marsalice114
+ */
 public class CodeParserExecutor {
 
-    private final static HtmlCodeParser htmlCodeParser = new HtmlCodeParser();
-    private final static MultiFileCodeParser multiFileCodeParser = new MultiFileCodeParser();
+    private static final HtmlCodeParser htmlCodeParser = new HtmlCodeParser();
 
-    public static Object executeParser(String codeContent, CodeGenTypeEnum codeGenType) {
-        if (codeContent == null || codeContent.trim().isEmpty()) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码内容不能为空");
-        }
-        try {
+    private static final MultiFileCodeParser multiFileCodeParser = new MultiFileCodeParser();
 
-            return switch (codeGenType) {
-                case HTML -> htmlCodeParser.codeParse(codeContent, codeGenType);
-                case MULTI_FILE -> multiFileCodeParser.codeParse(codeContent, codeGenType);
-                default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
-            };
-        } catch (Exception e) {
-            String errorMessage = String.format("解析%s代码失败: %s", codeGenType, e.getMessage());
-            log.error("解析{}代码失败: {}", codeGenType,e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-        }
+    /**
+     * 执行代码解析
+     *
+     * @param codeContent     代码内容
+     * @param codeGenTypeEnum 代码生成类型
+     * @return 解析结果（HtmlCodeResult 或 MultiFileCodeResult）
+     */
+    public static Object executeParser(String codeContent, CodeGenTypeEnum codeGenTypeEnum) {
+        return switch (codeGenTypeEnum) {
+            case HTML -> htmlCodeParser.parseCode(codeContent);
+            case MULTI_FILE -> multiFileCodeParser.parseCode(codeContent);
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
+        };
     }
-
 }

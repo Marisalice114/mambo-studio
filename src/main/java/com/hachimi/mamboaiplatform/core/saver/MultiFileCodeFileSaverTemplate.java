@@ -10,12 +10,12 @@ import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 /**
  * 多文件代码保存器
  *
- * @author
+ * @author Marisalice
  */
 public class MultiFileCodeFileSaverTemplate extends CodeFileSaverTemplate<MultiFileCodeResult> {
 
     @Override
-    public CodeGenTypeEnum getCodeType() {
+    protected CodeGenTypeEnum getCodeType() {
         return CodeGenTypeEnum.MULTI_FILE;
     }
 
@@ -33,8 +33,8 @@ public class MultiFileCodeFileSaverTemplate extends CodeFileSaverTemplate<MultiF
     protected void validateInput(MultiFileCodeResult result) {
         super.validateInput(result);
         // 至少要有 HTML 代码，CSS 和 JS 可以为空
-        if (StrUtil.isBlank(result.getHtmlCode())) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "HTML代码内容不能为空");
-        }
+//        if (StrUtil.isBlank(result.getHtmlCode())) {
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "HTML代码内容不能为空");
+//        }
     }
 }

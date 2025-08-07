@@ -94,7 +94,7 @@ public class AiCodeGeneratorFacadeOld {
                         File savedDir = CodeFileSaver.saveHtmlFile(htmlCodeResult);
                         log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
                     } catch (Exception e) {
-                        log.error("保存失败: {}", e.getMessage());
+                        log.error("保存失败2: {}", e.getMessage());
                     }
                 });
     }
@@ -123,7 +123,7 @@ public class AiCodeGeneratorFacadeOld {
                         File savedDir = CodeFileSaver.saveMultiFile(multiFileResult);
                         log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
                     } catch (Exception e) {
-                        log.error("保存失败: {}", e.getMessage());
+                        log.error("保存失败1: {}", e.getMessage());
                     }
                 });
     }
