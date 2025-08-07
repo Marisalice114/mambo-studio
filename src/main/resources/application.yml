@@ -16,12 +16,22 @@ spring:
       port: 6379
       password:
       ttl: 3600  # 1 hour
+  # session 配置
+  session:
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
+
 
 
 server:
   port: 8234
   servlet:
     context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
 
 
 
