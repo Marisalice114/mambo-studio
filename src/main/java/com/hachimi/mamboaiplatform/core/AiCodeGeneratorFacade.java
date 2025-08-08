@@ -85,7 +85,7 @@ public class AiCodeGeneratorFacade {
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE,appId);
             }
-            case VUE -> {
+            case VUE_PROJECT -> {
                 TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStream(appId,userMessage);
                 yield processTokenStream(codeStream);
             }

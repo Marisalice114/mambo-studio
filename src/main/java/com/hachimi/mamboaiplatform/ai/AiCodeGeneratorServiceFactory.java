@@ -108,7 +108,7 @@ public class AiCodeGeneratorServiceFactory {
                         .build();
 
             // vue生成
-            case VUE ->
+            case VUE_PROJECT ->
                 AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                         //必须为每个memoryId绑定对话记忆

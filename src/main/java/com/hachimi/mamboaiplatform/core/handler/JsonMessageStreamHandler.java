@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.hachimi.mamboaiplatform.ai.model.message.*;
+import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.enums.ChatHistoryMessageTypeEnum;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
@@ -16,6 +17,8 @@ import reactor.core.publisher.Flux;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.hachimi.mamboaiplatform.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
+
 
 /**
  * JSON 消息流处理器
@@ -24,6 +27,12 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
+
+    private final VueProjectBuilder vueProjectBuilder;
+
+    public JsonMessageStreamHandler(VueProjectBuilder vueProjectBuilder) {
+        this.vueProjectBuilder = vueProjectBuilder;
+    }
 
     /**
      * 处理 TokenStream（VUE_PROJECT）
@@ -52,6 +61,9 @@ public class JsonMessageStreamHandler {
                     // 流式响应完成后，添加 AI 消息到对话历史
                     String aiResponse = chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    //获取本地输出路径，并进行部署
+                    String pathName = CODE_OUTPUT_ROOT_DIR + "vue_project_" + appId;
+                    vueProjectBuilder.buildVueProject(pathName);
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息

@@ -6,6 +6,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
+import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.core.handler.StreamHandlerExecutor;
 import com.hachimi.mamboaiplatform.core.parser.CodeParserExecutor;
 import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
@@ -62,6 +63,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -203,6 +207,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码生成目录不存在，请先生成代码");
         }
+        // vue处理
+        CodeGenTypeEnum codeGenType = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        if(codeGenType == CodeGenTypeEnum.VUE_PROJECT){
+            boolean result = vueProjectBuilder.buildVueProject(sourceDirPath);
+            ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "Vue项目构建失败，请检查代码生成目录是否正确");
+            // 检查生成的目录是否存在
+            File distDir = new File(sourceDirPath,"dist");
+            if (!distDir.exists() || !distDir.isDirectory()) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "Vue项目构建完成，但未找到 dist 目录");
+            }
         // 8.复制文件到部署目录
         String deployDirPath = CODE_DEPLOY_ROOT_DIR + File.separator + deployKey ;
         FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
