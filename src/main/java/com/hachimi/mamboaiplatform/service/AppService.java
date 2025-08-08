@@ -1,5 +1,6 @@
 package com.hachimi.mamboaiplatform.service;
 
+import com.hachimi.mamboaiplatform.model.dto.app.AppAddRequest;
 import com.hachimi.mamboaiplatform.model.dto.app.AppQueryRequest;
 import com.hachimi.mamboaiplatform.model.entity.App;
 import com.hachimi.mamboaiplatform.model.entity.User;
@@ -24,6 +25,8 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     String deployApp(Long appId, User loginUser);
 
