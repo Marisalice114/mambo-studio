@@ -8,15 +8,12 @@ import cn.hutool.core.util.StrUtil;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
 import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.core.handler.StreamHandlerExecutor;
-import com.hachimi.mamboaiplatform.core.parser.CodeParserExecutor;
-import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.exception.ThrowUtils;
 import com.hachimi.mamboaiplatform.mapper.AppMapper;
 import com.hachimi.mamboaiplatform.model.dto.app.AppQueryRequest;
 import com.hachimi.mamboaiplatform.model.entity.App;
-import com.hachimi.mamboaiplatform.model.entity.ChatHistory;
 import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.enums.ChatHistoryMessageTypeEnum;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
@@ -209,14 +206,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         // vue处理
         CodeGenTypeEnum codeGenType = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
-        if(codeGenType == CodeGenTypeEnum.VUE_PROJECT){
+        if(codeGenType == CodeGenTypeEnum.VUE_PROJECT) {
             boolean result = vueProjectBuilder.buildVueProject(sourceDirPath);
             ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "Vue项目构建失败，请检查代码生成目录是否正确");
             // 检查生成的目录是否存在
-            File distDir = new File(sourceDirPath,"dist");
+            File distDir = new File(sourceDirPath, "dist");
             if (!distDir.exists() || !distDir.isDirectory()) {
                 throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "Vue项目构建完成，但未找到 dist 目录");
             }
+        }
         // 8.复制文件到部署目录
         String deployDirPath = CODE_DEPLOY_ROOT_DIR + File.separator + deployKey ;
         FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
