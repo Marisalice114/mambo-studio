@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.hachimi.mamboaiplatform.constant.AppConstant;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
 import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.core.handler.StreamHandlerExecutor;
@@ -21,6 +22,7 @@ import com.hachimi.mamboaiplatform.model.vo.AppVO;
 import com.hachimi.mamboaiplatform.model.vo.UserPublicVO;
 import com.hachimi.mamboaiplatform.service.AppService;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
+import com.hachimi.mamboaiplatform.service.ScreenshotService;
 import com.hachimi.mamboaiplatform.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -63,6 +65,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenshotService screenshotService;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -144,7 +149,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
         }
         // 4.检验应用是否为vip专属，并且检验用户是否为vip
-        if (app.getIsVipOnly() && userService.isVip(loginUser)) {
+        if (app.getIsVipOnly() && !userService.isVip(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "该应用为 VIP 专属应用，请先开通 VIP");
         }
         // 5. 获取应用的代码生成类型
@@ -212,22 +217,59 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             // 检查生成的目录是否存在
             File distDir = new File(sourceDirPath, "dist");
             if (!distDir.exists() || !distDir.isDirectory()) {
-                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "Vue项目构建完成，但未找到 dist 目录");
+                ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
             }
+            sourceDir = distDir; // 将源目录指向 dist 目录
         }
         // 8.复制文件到部署目录
-        String deployDirPath = CODE_DEPLOY_ROOT_DIR + File.separator + deployKey ;
-        FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+        String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
+        try {
+            FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用部署失败：" + e.getMessage());
+        }
         // 9.更新应用的deploykey和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
         updateApp.setUpdateTime(LocalDateTime.now());
         // 调用保存
-        this.updateById(updateApp);
+        boolean updateResult = this.updateById(updateApp);
+        ThrowUtils.throwIf( !updateResult, ErrorCode.SYSTEM_ERROR, "应用部署信息更新失败，请稍后重试");
         // 10.返回访问的url
         // 注意这里一定要带上/ 不然无法触发重定向
-        return String.format("%s/%s/", CODE_DEPLOY_HOST, deployKey);
+        String appDeployUrl =  String.format("%s/%s/", CODE_DEPLOY_HOST, deployKey);
+        // 11.异步生成封面
+        generateAppScreenshotAsync(appId,appDeployUrl);
+        return appDeployUrl;
+    }
+
+    /**
+     * 异步生成应用封面截图
+     * @param appId
+     * @param appDeployUrl
+     */
+    @Override
+    public void generateAppScreenshotAsync(Long appId, String appDeployUrl) {
+        // 异步生成应用封面截图
+        Thread.startVirtualThread(() -> {
+            try {
+                // 生成应用封面截图
+                String screenshotUrl = screenshotService.generateAndUploadScreenshot(appDeployUrl);
+                if (StrUtil.isNotBlank(screenshotUrl)) {
+                    // 更新应用的封面
+                    App updateApp = new App();
+                    updateApp.setId(appId);
+                    updateApp.setCover(screenshotUrl);
+                    this.updateById(updateApp);
+                    log.info("应用 {} 的封面截图已生成并更新: {}", appId, screenshotUrl);
+                } else {
+                    log.warn("应用 {} 的封面截图生成失败", appId);
+                }
+            } catch (Exception e) {
+                log.error("生成应用 {} 封面截图异常: {}", appId, e.getMessage(), e);
+            }
+        });
     }
 
     /**
@@ -256,4 +298,3 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
 
 }
-

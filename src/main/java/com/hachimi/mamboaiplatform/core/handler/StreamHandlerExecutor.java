@@ -33,7 +33,7 @@ public class StreamHandlerExecutor {
                                     long appId, User loginUser) {
         return switch (codeGenTypeEnum) {
             case HTML,MULTI_FILE -> simpleTextStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser);
-            case VUE -> jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser);
+            case VUE_PROJECT -> jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         };
     }

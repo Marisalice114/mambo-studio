@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,8 +63,8 @@ public class JsonMessageStreamHandler {
                     String aiResponse = chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                     //获取本地输出路径，并进行部署
-                    String pathName = CODE_OUTPUT_ROOT_DIR + "vue_project_" + appId;
-                    vueProjectBuilder.buildVueProject(pathName);
+                    String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+                    vueProjectBuilder.buildProjectAsync(pathName);
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息
