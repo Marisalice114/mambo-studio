@@ -4,7 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-applicaition-local.yml
+application-local.yml
 tmp
 
 ### STS ###
