@@ -2,7 +2,7 @@ package com.hachimi.mamboaiplatform.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.hachimi.mamboaiplatform.ai.tools.FileWriteTool;
+import com.hachimi.mamboaiplatform.ai.tools.*;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
@@ -43,6 +43,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private StreamingChatModel reasoningStreamingChatModel;
+
+    @Resource
+    private ToolManager toolManager;
 
 //    @Bean
 //    public AiCodeGeneratorService aiCodeGeneratorService() {
@@ -115,7 +118,9 @@ public class AiCodeGeneratorServiceFactory {
                     .streamingChatModel(reasoningStreamingChatModel)
                         //必须为每个memoryId绑定对话记忆
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(
+                        (Object[]) toolManager.getAllTools()
+                    )
                         //处理调用不存在的工具
                     .hallucinatedToolNameStrategy( toolExecutionRequest ->
                         ToolExecutionResultMessage.from(toolExecutionRequest,"Error: there is no tool named '" + toolExecutionRequest.name())
@@ -150,5 +155,3 @@ public class AiCodeGeneratorServiceFactory {
         return appId + "_" + codeGenType.getValue();
     }
 }
-
-
