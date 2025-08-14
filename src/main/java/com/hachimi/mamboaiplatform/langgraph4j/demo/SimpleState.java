@@ -4,7 +4,6 @@ import org.bsc.langgraph4j.state.AgentState;
 import org.bsc.langgraph4j.state.Channels;
 import org.bsc.langgraph4j.state.Channel;
 
-
 import java.util.*;
 
 // Define the state for our graph

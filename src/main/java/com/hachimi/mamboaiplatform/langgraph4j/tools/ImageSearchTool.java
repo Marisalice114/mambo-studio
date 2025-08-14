@@ -5,8 +5,8 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.hachimi.mamboaiplatform.langgraph4j.model.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.langgraph4j.model.ImageResource;
+import com.hachimi.mamboaiplatform.langgraph4j.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 图片搜索工具（根据关键词搜索内容图片）
+ */
 @Slf4j
 @Component
 public class ImageSearchTool {
@@ -54,4 +57,4 @@ public class ImageSearchTool {
         }
         return imageList;
     }
-}
+} 

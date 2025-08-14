@@ -4,6 +4,9 @@ import com.hachimi.mamboaiplatform.langgraph4j.model.ImageCollectionPlan;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 
+/**
+ * 图片收集规划服务
+ */
 public interface ImageCollectionPlanService {
 
     /**

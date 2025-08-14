@@ -13,7 +13,7 @@ import java.util.List;
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
- * 提示词增强节点
+ * 提示词增强工作节点
  */
 @Slf4j
 public class PromptEnhancerNode {
@@ -56,4 +56,3 @@ public class PromptEnhancerNode {
         });
     }
 }
-

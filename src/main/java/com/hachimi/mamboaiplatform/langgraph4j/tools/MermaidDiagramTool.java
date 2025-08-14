@@ -7,13 +7,14 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.system.SystemUtil;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
-import com.hachimi.mamboaiplatform.langgraph4j.model.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.langgraph4j.model.ImageResource;
+import com.hachimi.mamboaiplatform.langgraph4j.model.enums.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.manager.OssManager;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -21,17 +22,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 /**
- * mermaid 架构图生成工具
+ * Mermaid 架构图生成工具
  */
 @Slf4j
 @Component
 public class MermaidDiagramTool {
 
+
     @Resource
     private OssManager ossManager;
-    
+
     @Tool("将 Mermaid 代码转换为架构图图片，用于展示系统结构和技术关系")
     public List<ImageResource> generateMermaidDiagram(@P("Mermaid 图表代码") String mermaidCode,
                                                       @P("架构图描述") String description) {
@@ -41,9 +42,9 @@ public class MermaidDiagramTool {
         try {
             // 转换为SVG图片
             File diagramFile = convertMermaidToSvg(mermaidCode);
-            // 上传到OSS - 修复：移除开头的斜杠
+            // 上传到COS
             String keyName = String.format("mermaid/%s/%s",
-                    RandomUtil.randomString(6), diagramFile.getName());
+                    RandomUtil.randomString(5), diagramFile.getName());
             String cosUrl = ossManager.uploadFile(keyName, diagramFile);
             // 清理临时文件
             FileUtil.del(diagramFile);
@@ -87,4 +88,4 @@ public class MermaidDiagramTool {
         FileUtil.del(tempInputFile);
         return tempOutputFile;
     }
-}
+} 

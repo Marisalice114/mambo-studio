@@ -5,6 +5,9 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 图片收集计划
+ */
 @Data
 public class ImageCollectionPlan implements Serializable {
     

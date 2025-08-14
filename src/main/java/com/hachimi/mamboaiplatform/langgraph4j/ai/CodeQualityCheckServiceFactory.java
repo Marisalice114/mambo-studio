@@ -9,10 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 代码质量检查 AI 服务工厂
- * 用于创建 CodeQualityCheckService 实例
+ * 代码质量检查服务工厂
  */
-
 @Slf4j
 @Configuration
 public class CodeQualityCheckServiceFactory {

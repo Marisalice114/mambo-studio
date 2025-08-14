@@ -1,9 +1,13 @@
 package com.hachimi.mamboaiplatform.langgraph4j.ai;
 
+
 import com.hachimi.mamboaiplatform.langgraph4j.model.QualityResult;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 
+/**
+ * 代码质量检查服务
+ */
 public interface CodeQualityCheckService {
 
     /**

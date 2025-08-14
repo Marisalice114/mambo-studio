@@ -27,7 +27,7 @@ public class SimpleStatefulWorkflowApp {
      */
     static AsyncNodeAction<MessagesState<String>> makeStatefulNode(String nodeName, String message) {
         return node_async(state -> {
-            WorkflowContext context = WorkflowContext.getContext(state); //在workflowcontext中包含有状态
+            WorkflowContext context = WorkflowContext.getContext(state);
             log.info("执行节点: {} - {}", nodeName, message);
             // 只记录当前步骤，不做具体的状态流转
             if (context != null) {
@@ -60,7 +60,7 @@ public class SimpleStatefulWorkflowApp {
 
         // 初始化 WorkflowContext - 只设置基本信息
         WorkflowContext initialContext = WorkflowContext.builder()
-                .originalPrompt("创建一个曼波的个人博客网站")
+                .originalPrompt("创建一个鱼皮的个人博客网站")
                 .currentStep("初始化")
                 .build();
 

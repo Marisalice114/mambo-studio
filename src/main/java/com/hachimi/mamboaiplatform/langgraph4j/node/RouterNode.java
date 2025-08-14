@@ -10,6 +10,9 @@ import org.bsc.langgraph4j.prebuilt.MessagesState;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
+/**
+ * 智能路由工作节点
+ */
 @Slf4j
 public class RouterNode {
 
@@ -37,4 +40,3 @@ public class RouterNode {
         });
     }
 }
-

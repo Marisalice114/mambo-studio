@@ -14,7 +14,6 @@ import java.io.File;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
-
 /**
  * 项目构建节点
  */
@@ -30,7 +29,7 @@ public class ProjectBuilderNode {
             String generatedCodeDir = context.getGeneratedCodeDir();
             CodeGenTypeEnum generationType = context.getGenerationType();
             String buildResultDir;
-            // Vue 项目类型：使用 VueProjectBuilder 进行构建
+            // 一定是 Vue 项目类型：使用 VueProjectBuilder 进行构建
             try {
                 VueProjectBuilder vueBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
                 // 执行 Vue 项目构建（npm install + npm run build）
@@ -54,4 +53,3 @@ public class ProjectBuilderNode {
         });
     }
 }
-

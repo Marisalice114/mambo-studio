@@ -12,7 +12,7 @@ class CodeGenWorkflowTest {
 
     @Test
     void testTechBlogWorkflow() {
-        WorkflowContext result = new CodeGenWorkflow().executeWorkflow("创建一个技术博客网站，需要展示编程教程和系统架构");
+        WorkflowContext result = new CodeGenWorkflow().executeWorkflow("创建一个哈基米技术博客网站，需要展示编程教程和系统架构");
         Assertions.assertNotNull(result);
         System.out.println("生成类型: " + result.getGenerationType());
         System.out.println("生成的代码目录: " + result.getGeneratedCodeDir());

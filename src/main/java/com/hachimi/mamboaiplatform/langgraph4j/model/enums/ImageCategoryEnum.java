@@ -1,8 +1,11 @@
-package com.hachimi.mamboaiplatform.langgraph4j.model;
+package com.hachimi.mamboaiplatform.langgraph4j.model.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
 
+/**
+ * 图片类型枚举
+ */
 @Getter
 public enum ImageCategoryEnum {
 

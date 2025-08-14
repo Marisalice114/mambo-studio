@@ -7,8 +7,8 @@ import cn.hutool.http.HttpUtil;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
-import com.hachimi.mamboaiplatform.langgraph4j.model.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.langgraph4j.model.ImageResource;
+import com.hachimi.mamboaiplatform.langgraph4j.model.enums.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.manager.OssManager;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Logo 图片生成工具
+ */
 @Slf4j
 @Component
 public class LogoGeneratorTool {

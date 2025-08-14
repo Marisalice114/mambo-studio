@@ -1,5 +1,6 @@
 package com.hachimi.mamboaiplatform.langgraph4j.model;
 
+import com.hachimi.mamboaiplatform.langgraph4j.model.enums.ImageCategoryEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

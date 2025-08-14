@@ -1,7 +1,8 @@
 package com.hachimi.mamboaiplatform.langgraph4j.demo;
 
 import org.bsc.langgraph4j.action.NodeAction;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 // Node that adds a greeting
 class GreeterNode implements NodeAction<SimpleState> {

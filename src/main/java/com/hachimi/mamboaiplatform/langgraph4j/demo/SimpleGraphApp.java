@@ -7,7 +7,6 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 import static org.bsc.langgraph4j.StateGraph.START;
 import static org.bsc.langgraph4j.StateGraph.END;
 
-import java.util.List;
 import java.util.Map;
 
 public class SimpleGraphApp {
@@ -29,9 +28,8 @@ public class SimpleGraphApp {
         // Compile the graph
         var compiledGraph = stateGraph.compile();
 
-        GraphRepresentation demo = stateGraph.getGraph(GraphRepresentation.Type.MERMAID, "demo");
-        System.out.println(demo.toString());
-
+        GraphRepresentation graph = stateGraph.getGraph(GraphRepresentation.Type.MERMAID, "demo");
+        System.out.println(graph.toString());
 
         // Run the graph
         // The `stream` method returns an AsyncGenerator.
@@ -39,7 +37,6 @@ public class SimpleGraphApp {
         // Here, the final state after execution is the item of interest.
 
         for (var item : compiledGraph.stream( Map.of( SimpleState.MESSAGES_KEY, "Let's, begin!" ) ) ) {
-
             System.out.println( item );
         }
 

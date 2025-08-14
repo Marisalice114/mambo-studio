@@ -33,7 +33,7 @@ public class SimpleWorkflowApp {
 
     public static void main(String[] args) throws GraphStateException {
         // 创建工作流图
-        CompiledGraph<MessagesState<String>> workflow = new MessagesStateGraph<String>() //默认的状态
+        CompiledGraph<MessagesState<String>> workflow = new MessagesStateGraph<String>()
                 // 添加节点
                 .addNode("image_collector", makeNode("获取图片素材"))
                 .addNode("prompt_enhancer", makeNode("增强提示词"))
@@ -67,4 +67,4 @@ public class SimpleWorkflowApp {
 
         log.info("工作流执行完成！");
     }
-}
+} 
