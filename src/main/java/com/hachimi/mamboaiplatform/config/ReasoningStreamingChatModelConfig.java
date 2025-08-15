@@ -7,13 +7,14 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
 
 @Configuration
-@ConfigurationProperties( prefix = "langchain4j.open-ai.reasoning-model")
+@ConfigurationProperties( prefix = "langchain4j.open-ai.reasoning-stream-model")
 @Data
-public class ReasoningStreamingChatConfig {
+public class ReasoningStreamingChatModelConfig {
 
     private String baseUrl;
 
@@ -29,13 +30,17 @@ public class ReasoningStreamingChatConfig {
 
     private Duration timeout;
 
+    private double temperature;
+
+
 
     /**
      * 流式推理模型
      * @return
      */
     @Bean
-    public StreamingChatModel reasoningStreamingChatModel() {
+    @Scope("prototype") // Use prototype scope to create a new instance each time
+    public StreamingChatModel reasoningStreamingChatModelPrototype() {
         return OpenAiStreamingChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
@@ -44,6 +49,7 @@ public class ReasoningStreamingChatConfig {
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .timeout(timeout)
+                .temperature(temperature)
                 .build();
     }
 }

@@ -1,21 +1,17 @@
 package com.hachimi.mamboaiplatform.config;
 
-
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
+import org.springframework.context.annotation.Scope;
 
 @Configuration
-@ConfigurationProperties( prefix = "langchain4j.open-ai.fast-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.routing-chat-model")
 @Data
-public class FastChatConfig {
+public class RoutingAiModelConfig {
 
     private String baseUrl;
 
@@ -23,28 +19,31 @@ public class FastChatConfig {
 
     private String modelName;
 
-    private int maxTokens;
+    private Integer maxTokens;
 
-    private boolean logRequests;
+    private Double temperature;
 
-    private boolean logResponses;
+    private Boolean logRequests = false;
 
-    private Duration timeout;
+    private Boolean logResponses = false;
+
+    private Integer maxRetries;
 
     /**
-     * 普通任务推理模型
-     * @return
+     * 创建用于路由判断的ChatModel
      */
     @Bean
-    public ChatModel fastChatModel() {
+    @Scope("prototype")
+    public ChatModel routingChatModelPrototype() {
         return OpenAiChatModel.builder()
-                .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
+                .baseUrl(baseUrl)
                 .maxTokens(maxTokens)
+                .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
-                .timeout(timeout)
+                .maxRetries(maxRetries)
                 .build();
     }
 }

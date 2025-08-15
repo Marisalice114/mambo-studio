@@ -6,6 +6,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hachimi.mamboaiplatform.ai.AiCodeGenTypeRoutingService;
+import com.hachimi.mamboaiplatform.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.hachimi.mamboaiplatform.constant.AppConstant;
 import com.hachimi.mamboaiplatform.core.AiCodeGeneratorFacade;
 import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
@@ -72,7 +73,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private ScreenshotService screenshotService;
 
     @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+    private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -186,6 +187,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
         // 使用 AI 智能选择代码生成类型
+        // 多例模式来获取新的 AiCodeGenTypeRoutingService 实例 （每次创建新的aiservice）
+        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
         CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.getCodeGenType(initPrompt);
         app.setCodeGenType(selectedCodeGenType.getValue());
         // 插入数据库

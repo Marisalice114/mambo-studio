@@ -9,24 +9,25 @@ import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
 
-/*(
+/*
  * 门面模式
  * AiCodeGeneratorFacade - 用于提供AI代码生成相关的服务接口
  * 通过此Facade可以调用具体的AI代码生成服务
  *
+ * @deprecated 此类已被弃用，请使用新的代码生成服务
  */
-@Service
 @Slf4j
 @Deprecated
 public class AiCodeGeneratorFacadeOld {
 
     @Resource
     private AiCodeGeneratorService aiCodeGeneratorService;
+
+
     @Resource
     private CodeParser codeParser;
 

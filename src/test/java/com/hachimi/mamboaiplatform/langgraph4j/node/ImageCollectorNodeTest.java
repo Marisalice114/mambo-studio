@@ -1,7 +1,8 @@
 package com.hachimi.mamboaiplatform.langgraph4j.node;
 
-import com.hachimi.mamboaiplatform.langgraph4j.model.ImageCategoryEnum;
+
 import com.hachimi.mamboaiplatform.langgraph4j.model.ImageResource;
+import com.hachimi.mamboaiplatform.langgraph4j.model.enums.ImageCategoryEnum;
 import com.hachimi.mamboaiplatform.langgraph4j.tools.ImageSearchTool;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;

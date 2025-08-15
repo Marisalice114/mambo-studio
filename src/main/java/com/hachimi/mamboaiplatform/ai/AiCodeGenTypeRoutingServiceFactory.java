@@ -7,6 +7,7 @@ import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
+import com.hachimi.mamboaiplatform.utils.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -31,18 +32,25 @@ import java.time.Duration;
 @Configuration
 public class AiCodeGenTypeRoutingServiceFactory {
 
-    @Resource
-    @Qualifier("fastChatModel")
-    private ChatModel fastChatModel;
-
     /**
      * 创建AI代码生成类型路由服务实例
      */
-    @Bean
-    public AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService() {
+
+    public AiCodeGenTypeRoutingService createAiCodeGenTypeRoutingService() {
+        // 多例模式生成bean
+        ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
         return AiServices.builder(AiCodeGenTypeRoutingService.class)
-                .chatModel(fastChatModel)
+                .chatModel(chatModel)
                 .build();
+    }
+
+    /**
+     * 兼容旧逻辑
+     * @return
+     */
+    @Bean
+    public AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService(){
+        return createAiCodeGenTypeRoutingService();
     }
 }
 
