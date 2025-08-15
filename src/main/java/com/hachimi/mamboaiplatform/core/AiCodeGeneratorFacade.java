@@ -8,6 +8,7 @@ import com.hachimi.mamboaiplatform.ai.model.MultiFileCodeResult;
 import com.hachimi.mamboaiplatform.ai.model.message.AiResponseMessage;
 import com.hachimi.mamboaiplatform.ai.model.message.ToolExecutedMessage;
 import com.hachimi.mamboaiplatform.ai.model.message.ToolRequestMessage;
+import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.core.parser.CodeParserExecutor;
 import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
@@ -24,12 +25,17 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.hachimi.mamboaiplatform.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
+
 @Slf4j
 @Service
 public class AiCodeGeneratorFacade {
 
   @Resource
   private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+  @Resource
+  private VueProjectBuilder vueProjectBuilder;
 
   /**
    * 统一入口：根据类型生成并保存代码
@@ -91,7 +97,7 @@ public class AiCodeGeneratorFacade {
       }
       case VUE_PROJECT -> {
         TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStream(appId, userMessage);
-        yield processTokenStream(codeStream);
+        yield processTokenStream(codeStream,appId);
       }
       default -> {
         String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -104,9 +110,10 @@ public class AiCodeGeneratorFacade {
    * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息 适配器模式
    *
    * @param tokenStream TokenStream 对象
+   * @param appId 应用ID
    * @return Flux<String> 流式响应
    */
-  private Flux<String> processTokenStream(TokenStream tokenStream) {
+  private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
     return Flux.create(sink -> {
       // 工具调用计数器，用于监控（不设限制）
       final AtomicInteger toolCallCount = new AtomicInteger(0);
@@ -134,6 +141,9 @@ public class AiCodeGeneratorFacade {
           })
           .onCompleteResponse((ChatResponse response) -> {
             log.info("AI 响应完成，总工具调用次数: {}", toolCallCount.get());
+            //同步执行vue项目，确保预览时项目已经就绪
+            String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+            vueProjectBuilder.buildVueProject(pathName);
             sink.complete();
           })
           .onError((Throwable error) -> {

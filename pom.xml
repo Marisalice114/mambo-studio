@@ -102,6 +102,12 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
+        <!-- Redisson -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.50.0</version>
+        </dependency>
 
 
 
@@ -217,7 +223,6 @@
             <version>RELEASE</version>
             <scope>compile</scope>
         </dependency>
-
 
     </dependencies>
 

@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
+import lombok.NoArgsConstructor;
 
 /**
  * 基础响应封装
