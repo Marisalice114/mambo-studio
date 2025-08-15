@@ -2,6 +2,8 @@ package com.hachimi.mamboaiplatform.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.hachimi.mamboaiplatform.ai.guardrail.PromptSafetyInputGuardrail;
+import com.hachimi.mamboaiplatform.ai.guardrail.RetryOutputGuardrail;
 import com.hachimi.mamboaiplatform.ai.tools.*;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
@@ -106,6 +108,10 @@ public class AiCodeGeneratorServiceFactory {
                         .streamingChatModel(streamingChatModel)
                         .chatModel(chatModel)
                         .chatMemory(chatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail()) //输入护轨
+//                        .outputGuardrails(new RetryOutputGuardrail()) //输出护轨 但是注意，流式输出最好不要用输出护轨
+                        //经过测试，如果用了输出护轨，可能会导致流式输出的响应不及时，
+                        //等到AI输出结束才一起返回，所以如果为了追求流式输出效果，建议不要通过护轨的方式进行重试。
                         .build();
             }
 
@@ -124,6 +130,8 @@ public class AiCodeGeneratorServiceFactory {
                     .hallucinatedToolNameStrategy( toolExecutionRequest ->
                         ToolExecutionResultMessage.from(toolExecutionRequest,"Error: there is no tool named '" + toolExecutionRequest.name())
                     )
+                    .inputGuardrails(new PromptSafetyInputGuardrail())
+//                    .outputGuardrails(new RetryOutputGuardrail())
                     .build();
             }
 
