@@ -23,6 +23,8 @@ import com.hachimi.mamboaiplatform.model.enums.ChatHistoryMessageTypeEnum;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
 import com.hachimi.mamboaiplatform.model.vo.AppVO;
 import com.hachimi.mamboaiplatform.model.vo.UserPublicVO;
+import com.hachimi.mamboaiplatform.monitor.MonitorContext;
+import com.hachimi.mamboaiplatform.monitor.MonitorContextHolder;
 import com.hachimi.mamboaiplatform.service.AppService;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
 import com.hachimi.mamboaiplatform.service.ScreenshotService;
@@ -164,14 +166,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-
         // 6. 调用 AI 前，先将用户消息保存到数据库中
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 7. 调用 AI 生成代码，并返回结果流
+        // 7.设置线程监控上下文，便于通过threadlocal来获取userid和appid
+        MonitorContextHolder.setContext(
+            MonitorContext.builder()
+                .userId(loginUser.getId().toString())
+                .appId(appId.toString())
+                .build()
+        );
+        // 8. 调用 AI 生成代码，并返回结果流
         Flux<String> stringFlux = aiCodeGeneratorFacade.generateCodeAndSaveStream(message, codeGenTypeEnum, appId);
-        // 8.收集响应内容并在完成过后记录到对话历史中
-        return streamHandlerExecutor.doExecutor(stringFlux, codeGenTypeEnum,chatHistoryService, appId, loginUser);
-
+        // 9.收集响应内容并在完成过后记录到对话历史中 异步
+        return streamHandlerExecutor.doExecutor(stringFlux, codeGenTypeEnum,chatHistoryService, appId, loginUser)
+                .doFinally( signalType -> {
+                    MonitorContextHolder.clearContext(); //异步清除上下文
+                });
     }
 
 

@@ -1,8 +1,10 @@
 package com.hachimi.mamboaiplatform.config;
 
 
+import com.hachimi.mamboaiplatform.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
+import java.util.List;
 
 @Configuration
 @ConfigurationProperties( prefix = "langchain4j.open-ai.reasoning-stream-model")
@@ -32,7 +35,8 @@ public class ReasoningStreamingChatModelConfig {
 
     private double temperature;
 
-
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
 
     /**
      * 流式推理模型
@@ -50,6 +54,7 @@ public class ReasoningStreamingChatModelConfig {
                 .logResponses(logResponses)
                 .timeout(timeout)
                 .temperature(temperature)
+                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 }

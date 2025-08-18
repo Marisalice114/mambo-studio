@@ -36,6 +36,16 @@ server:
         max-age: 2592000
 
 
+#Prometheus+grafana
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
 
 
 # springdoc-openapi项目配置
