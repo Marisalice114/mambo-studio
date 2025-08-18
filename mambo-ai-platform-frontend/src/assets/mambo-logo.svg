@@ -1,0 +1,46 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 外圆背景渐变 -->
+  <defs>
+    <radialGradient id="bgGradient" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFB6C1"/>
+      <stop offset="100%" stop-color="#FF69B4"/>
+    </radialGradient>
+    <radialGradient id="innerGradient" cx="0.5" cy="0.3" r="0.7">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F8F8FF"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- 主圆形背景 -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgGradient)"/>
+  
+  <!-- 内部白色区域 -->
+  <circle cx="64" cy="64" r="48" fill="url(#innerGradient)"/>
+  
+  <!-- 人物头部 -->
+  <ellipse cx="64" cy="52" rx="20" ry="22" fill="#FFB6C1"/>
+  
+  <!-- 人物身体 -->
+  <ellipse cx="64" cy="85" rx="16" ry="20" fill="#FFB6C1"/>
+  
+  <!-- 面部特征 -->
+  <!-- 眼睛 -->
+  <ellipse cx="58" cy="48" rx="2" ry="3" fill="#333"/>
+  <ellipse cx="70" cy="48" rx="2" ry="3" fill="#333"/>
+  <circle cx="58.5" cy="47" r="0.8" fill="#FFF"/>
+  <circle cx="70.5" cy="47" r="0.8" fill="#FFF"/>
+  
+  <!-- 鼻子 -->
+  <ellipse cx="64" cy="52" rx="1" ry="1.5" fill="#FF91A4"/>
+  
+  <!-- 嘴巴 -->
+  <path d="M 58 56 Q 64 60 70 56" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- 头发装饰 -->
+  <path d="M 48 40 Q 52 35 58 38" stroke="#FF69B4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 70 38 Q 76 35 80 40" stroke="#FF69B4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- 装饰性边框 -->
+  <circle cx="64" cy="64" r="60" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.6"/>
+  <circle cx="64" cy="64" r="55" fill="none" stroke="#FFB6C1" stroke-width="1" opacity="0.4"/>
+</svg>

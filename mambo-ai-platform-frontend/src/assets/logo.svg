@@ -1,0 +1,24 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 圆形背景 -->
+  <circle cx="24" cy="24" r="24" fill="#FFB6C1"/>
+  
+  <!-- 内部人物轮廓 -->
+  <circle cx="24" cy="24" r="18" fill="#FFFFFF"/>
+  
+  <!-- 人物简化轮廓 -->
+  <!-- 头部 -->
+  <circle cx="24" cy="20" r="8" fill="#FFB6C1" stroke="#FFFFFF" stroke-width="1"/>
+  
+  <!-- 身体 -->
+  <ellipse cx="24" cy="32" rx="6" ry="8" fill="#FFB6C1" stroke="#FFFFFF" stroke-width="1"/>
+  
+  <!-- 眼睛 -->
+  <circle cx="21" cy="18" r="1.5" fill="#333"/>
+  <circle cx="27" cy="18" r="1.5" fill="#333"/>
+  
+  <!-- 嘴巴 -->
+  <path d="M 20 22 Q 24 25 28 22" stroke="#333" stroke-width="1.5" fill="none"/>
+  
+  <!-- 装饰性光环效果 -->
+  <circle cx="24" cy="24" r="22" fill="none" stroke="#FFB6C1" stroke-width="1" opacity="0.3"/>
+</svg>
