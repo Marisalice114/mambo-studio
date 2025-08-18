@@ -17,9 +17,15 @@ public @interface RateLimit {
     String key() default "";
 
     /**
-     * 每个时间窗口允许的请求数
+     * 普通用户每个时间窗口允许的请求数
      */
     int rate() default 10;
+
+    /**
+     * VIP用户每个时间窗口允许的请求数
+     * 如果不设置，则与普通用户相同
+     */
+    int vipRate() default -1;
 
     /**
      * 时间窗口（秒）
@@ -32,7 +38,17 @@ public @interface RateLimit {
     RateLimitType limitType() default RateLimitType.USER;
 
     /**
-     * 限流提示信息
+     * 普通用户限流提示信息
      */
     String message() default "请求过于频繁，请稍后再试";
+
+    /**
+     * VIP用户限流提示信息
+     */
+    String vipMessage() default "VIP用户请求过于频繁，请稍后再试";
+
+    /**
+     * 是否启用VIP差异化限流
+     */
+    boolean enableVipDifferentiation() default false;
 }

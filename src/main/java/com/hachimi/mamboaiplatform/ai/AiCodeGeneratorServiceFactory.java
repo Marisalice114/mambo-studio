@@ -120,6 +120,7 @@ public class AiCodeGeneratorServiceFactory {
                 //使用多例模式的streamingchatmodel来解决并发问题
                 StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                 yield  AiServices.builder(AiCodeGeneratorService.class)
+                    .chatModel(chatModel)
                     .streamingChatModel(reasoningStreamingChatModel)
                         //必须为每个memoryId绑定对话记忆
                     .chatMemoryProvider(memoryId -> chatMemory)
@@ -127,6 +128,7 @@ public class AiCodeGeneratorServiceFactory {
                         (Object[]) toolManager.getAllTools()
                     )
                         //处理调用不存在的工具
+                    .maxSequentialToolsInvocations(20)
                     .hallucinatedToolNameStrategy( toolExecutionRequest ->
                         ToolExecutionResultMessage.from(toolExecutionRequest,"Error: there is no tool named '" + toolExecutionRequest.name())
                     )

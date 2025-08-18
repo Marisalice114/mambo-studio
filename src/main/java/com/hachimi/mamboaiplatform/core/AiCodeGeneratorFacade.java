@@ -97,7 +97,7 @@ public class AiCodeGeneratorFacade {
       }
       case VUE_PROJECT -> {
         TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStream(appId, userMessage);
-        yield processTokenStream(codeStream,appId);
+        yield processTokenStream(codeStream, appId);
       }
       default -> {
         String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -110,7 +110,7 @@ public class AiCodeGeneratorFacade {
    * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息 适配器模式
    *
    * @param tokenStream TokenStream 对象
-   * @param appId 应用ID
+   * @param appId       应用ID
    * @return Flux<String> 流式响应
    */
   private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
@@ -125,15 +125,15 @@ public class AiCodeGeneratorFacade {
             partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
       })
           .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
-            int currentCount = toolCallCount.incrementAndGet();
-            log.debug("工具调用 #{}: {} (参数长度: {})", currentCount, toolExecutionRequest.name(),
+            log.debug("工具调用: {} (参数长度: {})", toolExecutionRequest.name(),
                 toolExecutionRequest.arguments().length());
 
             ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
             sink.next(JSONUtil.toJsonStr(toolRequestMessage));
           })
           .onToolExecuted((ToolExecution toolExecution) -> {
-            log.info("工具执行完成: {} -> {}", toolExecution.request().name(),
+            int currentCount = toolCallCount.incrementAndGet();
+            log.info("工具执行完成 #{}: {} -> {}", currentCount, toolExecution.request().name(),
                 toolExecution.result().length() > 100 ? toolExecution.result().substring(0, 100) + "..."
                     : toolExecution.result());
             ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
@@ -141,7 +141,7 @@ public class AiCodeGeneratorFacade {
           })
           .onCompleteResponse((ChatResponse response) -> {
             log.info("AI 响应完成，总工具调用次数: {}", toolCallCount.get());
-            //同步执行vue项目，确保预览时项目已经就绪
+            // 同步执行vue项目，确保预览时项目已经就绪
             String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
             vueProjectBuilder.buildVueProject(pathName);
             sink.complete();

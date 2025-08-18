@@ -25,7 +25,7 @@ import java.time.Duration;
 
 
 /**
- * 限流切面
+ * 限流切面 - 支持VIP差异化限流
  */
 @Aspect
 @Component
@@ -43,31 +43,86 @@ public class RateLimitAspect {
 
     @Before("@annotation(rateLimit)")
     public void doBefore(JoinPoint point, RateLimit rateLimit) {
-        String key = generateRateLimitKey(point, rateLimit);
+        // 获取用户信息用于VIP判断
+        User currentUser = getCurrentUser();
+        boolean isVip = currentUser != null && userService.isVip(currentUser);
+
+        // 生成限流key，VIP用户和普通用户使用不同的key
+        String key = generateRateLimitKey(point, rateLimit, isVip);
+
+        // 根据VIP状态决定限流参数
+        int allowedRate;
+        String errorMessage;
+
+        if (rateLimit.enableVipDifferentiation() && isVip && rateLimit.vipRate() > 0) {
+            // VIP用户使用VIP限制
+            allowedRate = rateLimit.vipRate();
+            errorMessage = rateLimit.vipMessage();
+            log.debug("VIP用户 {} 使用VIP限流策略，允许频率: {}/{} 秒",
+                     currentUser.getId(), allowedRate, rateLimit.rateInterval());
+        } else {
+            // 普通用户使用普通限制
+            allowedRate = rateLimit.rate();
+            errorMessage = rateLimit.message();
+            if (currentUser != null) {
+                log.debug("普通用户 {} 使用标准限流策略，允许频率: {}/{} 秒",
+                         currentUser.getId(), allowedRate, rateLimit.rateInterval());
+            }
+        }
+
         // 使用Redisson的分布式限流器
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
-        rateLimiter.expire(Duration.ofHours(1)); // 1 小时后过期，一定要加 （绝大多数时候redis都要设置过期时间，防止key无限增长）
+        rateLimiter.expire(Duration.ofHours(1)); // 1 小时后过期
+
         // 设置限流器参数：每个时间窗口允许的请求数和时间窗口
-        rateLimiter.trySetRate(RateType.OVERALL, rateLimit.rate(), rateLimit.rateInterval(), RateIntervalUnit.SECONDS);
+        rateLimiter.trySetRate(RateType.OVERALL, allowedRate, rateLimit.rateInterval(), RateIntervalUnit.SECONDS);
+
         // 尝试获取令牌，如果获取失败则限流
         if (!rateLimiter.tryAcquire(1)) {
-            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS_ERROR, rateLimit.message());
+            log.warn("限流触发 - Key: {}, 用户: {}, VIP: {}, 允许频率: {}/{} 秒",
+                    key, currentUser != null ? currentUser.getId() : "unknown", isVip, allowedRate, rateLimit.rateInterval());
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS_ERROR, errorMessage);
         }
     }
 
     /**
-     * 生成限流key
-     * @param point
-     * @param rateLimit
-     * @return
+     * 获取当前用户信息
      */
-    private String generateRateLimitKey(JoinPoint point, RateLimit rateLimit) {
+    private User getCurrentUser() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                return userService.getLoginUser(request);
+            }
+        } catch (BusinessException e) {
+            // 未登录用户返回null
+            log.debug("无法获取当前用户信息，可能未登录: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * 生成限流key - 支持VIP差异化
+     * @param point 切入点
+     * @param rateLimit 限流注解
+     * @param isVip 是否为VIP用户
+     * @return 限流key
+     */
+    private String generateRateLimitKey(JoinPoint point, RateLimit rateLimit, boolean isVip) {
         StringBuilder keyBuilder = new StringBuilder();
         keyBuilder.append("rate_limit:");
+
         // 添加自定义前缀
         if (!rateLimit.key().isEmpty()) {
             keyBuilder.append(rateLimit.key()).append(":");
         }
+
+        // 如果启用VIP差异化，在key中区分VIP用户
+        if (rateLimit.enableVipDifferentiation()) {
+            keyBuilder.append(isVip ? "vip:" : "normal:");
+        }
+
         // 根据限流类型生成不同的key
         switch (rateLimit.limitType()) {
             case API:
@@ -121,8 +176,7 @@ public class RateLimitAspect {
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
-        return ip != null ? ip : "unknown";
+        return ip;
     }
-
 
 }
