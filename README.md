@@ -281,6 +281,11 @@ mambo-ai-platform/
 4. **推送** 到分支 (`git push origin feature/amazing-feature`)
 5. **开启** Pull Request
 
+### 未来计划
+
+1.工作流功能目前只是单纯的界面展示以及单纯的调用，并未测试相关功能，后续考虑完善
+2.目前工作流的顺序是固定的，后续考虑实现网页内自主搭建工作流调用
+
 ### 开发者
 
 - [@Marisalice114](https://github.com/Marisalice114) - 项目维护者
