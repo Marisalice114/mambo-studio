@@ -4,9 +4,18 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# 敏感配置文件 - 包含API密钥和数据库密码
 application-local.yml
 application-prod.yml
-tmp
+backup/
+
+# 临时文件和输出目录
+tmp/
+code_output/
+logs/
+
+# 环境变量文件
+.env*
 
 ### STS ###
 .apt_generated
@@ -35,3 +44,18 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### macOS ###
+.DS_Store
+
+### Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+### 其他敏感文件 ###
+*.key
+*.pem
+*.p12
+*.jks
+*.log

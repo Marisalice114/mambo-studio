@@ -1,0 +1,127 @@
+# Mambo AI Platform - 配置示例文件
+# 请复制此文件为 application-local.yml 并填入您的实际配置信息
+
+spring:
+  profiles:
+    active: local
+  application:
+    name: mambo-code-platform
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/mambo_code_platform?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    username: your_database_username
+    password: your_database_password
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      validation-timeout: 2000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 0
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: your_redis_password_if_any
+      ttl: 3600 # 1 hour
+      database: 1
+  # Session配置
+  session:
+    store-type: redis
+    timeout: 2592000 # 30天过期
+
+server:
+  port: 8234
+  servlet:
+    context-path: /api
+    session:
+      cookie:
+        max-age: 2592000 # 30天过期
+
+# AI服务配置 - LangChain4j + ModelScope
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api-inference.modelscope.cn/v1/
+      api-key: your_modelscope_api_key_here
+      model-name: Qwen/Qwen3-235B-A22B-Instruct-2507
+      log-requests: true
+      log-responses: true
+      timeout: PT10M
+      max-tokens: 8192
+      strict-json-schema: true
+      response-format: json_object
+      max-retries: 3
+    streaming-chat-model:
+      base-url: https://api-inference.modelscope.cn/v1/
+      api-key: your_modelscope_api_key_here
+      model-name: Qwen/Qwen3-235B-A22B-Instruct-2507
+      log-requests: true
+      log-responses: true
+      timeout: PT10M
+      max-tokens: 8192
+      max-retries: 3
+      temperature: 0.3
+    reasoning-stream-model:
+      base-url: https://api-inference.modelscope.cn/v1/
+      api-key: your_modelscope_api_key_here
+      model-name: Qwen/Qwen3-Coder-480B-A35B-Instruct
+      log-requests: true
+      log-responses: true
+      timeout: PT10M
+      max-tokens: 40960
+      temperature: 0.3
+    routing-chat-model:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: your_dashscope_api_key_here
+      model-name: qwen-turbo
+      log-requests: true
+      log-responses: true
+      max-tokens: 512
+      temperature: 0.3
+
+# 阿里云OSS配置（用于文件存储）
+aliyun:
+  oss:
+    endpoint: https://oss-cn-chengdu.aliyuncs.com # 或您选择的区域
+    access-key-id: ${OSS_ACCESS_KEY_ID:your_oss_access_key_id}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:your_oss_access_key_secret}
+    bucket-name: your_bucket_name
+    region: cn-chengdu # 或您选择的区域
+    url-prefix: https://your_bucket_name.oss-cn-chengdu.aliyuncs.com/
+    dir-prefix: upload/
+
+# Pexels API配置（用于获取图片）
+pexels:
+  api-key: your_pexels_api_key_here
+
+# 阿里云DashScope配置（用于图片生成）
+dashscope:
+  api-key: your_dashscope_api_key_here
+  image-model: wanx2.1-t2i-turbo
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# OpenAPI文档配置
+springdoc:
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.hachimi.mamboaiplatform.controller
+
+# Knife4j增强配置
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
