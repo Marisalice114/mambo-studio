@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![MamboStudio](mambo.png)
+![MamboStudio](./assets/mambo.png)
 
 **智能 AI 代码生成平台** - 让 AI 帮你生成完整的 Web 应用
 
@@ -17,7 +17,7 @@
 
 ## ✨ 项目简介
 
-MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企业级 AI 代码生成平台。通过自然语言描述，AI 可以自动生成完整的 Web 应用，支持多种项目类型和部署方式。
+MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企业级 AI 代码生成平台。通过自然语言描述，AI 可以自动生成完整的 Web 应用，支持多种项目[...]
 
 ### 🎯 核心亮点
 
@@ -34,23 +34,23 @@ MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企
 
 ### 🏠 主页 - AI 代码生成
 
-![image-20250820110350687](.\assets\image-20250820110350687.png)
+![image-20250820110350687](./assets/image-20250820110350687.png)
 
 ### 💬 AI 对话生成 - 实时流式响应
 
-![image-20250820104624271](D:\ideaproject\mambo-ai-platform\assets\image-20250820104624271.png)
+![image-20250820104624271](./assets/image-20250820104624271.png)
 
 ### 🎯 代码预览 - 一键部署
 
-![image-20250820104722360](D:\ideaproject\mambo-ai-platform\assets\image-20250820104722360.png)
+![image-20250820104722360](./assets/image-20250820104722360.png)
 
 ### 💎 精选案例 - 应用展示
 
-![image-20250820105542163](D:\ideaproject\mambo-ai-platform\assets\image-20250820105542163.png)
+![image-20250820105542163](./assets/image-20250820105542163.png)
 
-![image-20250820110606519](D:\ideaproject\mambo-ai-platform\assets\image-20250820110606519.png)
+![image-20250820110606519](./assets/image-20250820110606519.png)
 
-![image-20250820111107669](D:\ideaproject\mambo-ai-platform\assets\image-20250820111107669.png)
+![image-20250820111107669](./assets/image-20250820111107669.png)
 
 ## 🚀 快速开始
 
@@ -112,7 +112,7 @@ npm run dev
 - **实时预览**: 生成过程中实时查看代码和效果
 - **一键部署**: 生成后自动部署，获得可访问链接
 
-![image-20250820111040761](D:\ideaproject\mambo-ai-platform\assets\image-20250820111040761.png)
+![image-20250820111040761](./assets/image-20250820111040761.png)
 
 ### 🎯 可视化编辑系统
 
@@ -122,9 +122,9 @@ npm run dev
 - **增量修改**: 针对 Vue 工程提供文件级增量修改工具
 - **AI 辅助**: 结合自然语言描述进行精确元素修改
 
-![image-20250820111141778](D:\ideaproject\mambo-ai-platform\assets\image-20250820111141778.png)
+![image-20250820111141778](./assets/image-20250820111141778.png)
 
-![image-20250820111342547](D:\ideaproject\mambo-ai-platform\assets\image-20250820111342547.png)
+![image-20250820111342547](./assets/image-20250820111342547.png)
 
 ### 👥 用户体系
 
@@ -133,9 +133,9 @@ npm run dev
 - **个人中心**: 管理个人信息和应用
 - **应用管理**: 查看、编辑、删除个人应用
 
-![image-20250820111503078](D:\ideaproject\mambo-ai-platform\assets\image-20250820111503078.png)
+![image-20250820111503078](./assets/image-20250820111503078.png)
 
-![image-20250820111442260](D:\ideaproject\mambo-ai-platform\assets\image-20250820111442260.png)
+![image-20250820111442260](./assets/image-20250820111442260.png)
 
 ### 🛡️ 管理后台
 
@@ -144,9 +144,9 @@ npm run dev
 - **对话管理**: AI 对话历史追踪
 - **数据统计**: 平台使用数据分析
 
-![image-20250820111527600](D:\ideaproject\mambo-ai-platform\assets\image-20250820111527600.png)
+![image-20250820111527600](./assets/image-20250820111527600.png)
 
-![image-20250820111541856](D:\ideaproject\mambo-ai-platform\assets\image-20250820111541856.png)
+![image-20250820111541856](./assets/image-20250820111541856.png)
 
 ### 🔧 企业特性
 
