@@ -1,97 +1,150 @@
-# 🚀 Mambo AI Platform - 环境配置指南
+# 🚀 MamboStudio - 环境配置指南
 
-本文档将指导您如何配置 Mambo AI Platform 的运行环境。
+本文档将指导您如何完整配置 MamboStudio AI 代码生成平台的运行环境。
 
-## 📋 配置清单
+## 📋 环境要求
 
-### 1. 数据库配置
+- **Java**: JDK 21+
+- **Node.js**: 20.0+
+- **MySQL**: 8.0+
+- **Redis**: 6.0+
 
-#### MySQL
+## 🗄️ 数据库配置
 
-- **版本要求**: MySQL 8.0+
-- **数据库名**: `mambo_code_platform`
-- **字符集**: UTF-8
-- **时区**: UTC
+### 1. MySQL 数据库设置
+
+#### 步骤 1: 创建数据库
 
 ```sql
+-- 连接到 MySQL 服务器后执行以下命令：
+CREATE DATABASE mambo_code_platform 
+    CHARACTER SET utf8mb4 
+    COLLATE utf8mb4_unicode_ci;
 
+-- 或者使用更完整的配置：
+CREATE DATABASE IF NOT EXISTS mambo_code_platform
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci
+    DEFAULT ENCRYPTION='N';
 ```
 
-#### Redis
+#### 步骤 2: 执行初始化脚本
 
-- **版本要求**: Redis 6.0+
-- **数据库**: 1（用于 Session 和缓存）
-- **密码**: 可选，建议生产环境配置
+数据库创建完成后，执行项目中的初始化脚本：
 
-### 2. AI 服务配置
+```bash
+# 方法1: 使用 MySQL 命令行
+mysql -u root -p mambo_code_platform < src/main/resources/sql/init.sql
 
-#### ModelScope API
+# 方法2: 使用 MySQL Workbench 或其他客户端工具
+# 直接执行 src/main/resources/sql/init.sql 文件内容
+```
 
-> **免费额度**: ModelScope 提供一定的免费 API 调用额度
+**数据库结构说明**:
+- `user` 表：用户信息管理，支持 VIP 会员功能
+- `app` 表：AI 生成的应用管理，支持部署和版本控制
+
+#### 步骤 3: 验证数据库
+
+```sql
+-- 切换到目标数据库
+USE mambo_code_platform;
+
+-- 查看创建的表
+SHOW TABLES;
+
+-- 验证表结构
+DESCRIBE user;
+DESCRIBE app;
+```
+
+### 2. Redis 配置
+
+Redis 用于会话管理、缓存和 LangChain4j 聊天记忆存储：
+
+```bash
+# 安装 Redis (Ubuntu/Debian)
+sudo apt update
+sudo apt install redis-server
+
+# 安装 Redis (CentOS/RHEL)
+sudo yum install redis
+
+# 安装 Redis (macOS)
+brew install redis
+
+# 启动 Redis 服务
+redis-server
+
+# 验证 Redis 运行
+redis-cli ping
+# 应该返回: PONG
+```
+
+## 🤖 AI 服务配置
+
+### 1. ModelScope API (推荐免费方案)
+
+MamboStudio 使用 ModelScope 作为主要的 AI 服务提供商：
+
+#### 步骤 1: 注册 ModelScope
 
 1. 访问 [ModelScope](https://www.modelscope.cn/)
-2. 注册账号并实名认证
-3. 进入控制台 → API-KEY 管理
+2. 注册账号并完成实名认证
+3. 进入 **控制台** → **API-KEY 管理**
 4. 创建新的 API Key
-5. 将 Key 配置到 `langchain4j.open-ai.chat-model.api-key`
 
-**推荐模型**:
+#### 步骤 2: 模型说明
 
-- **对话模型**: `Qwen/Qwen3-235B-A22B-Instruct-2507`
-- **代码模型**: `Qwen/Qwen3-Coder-480B-A35B-Instruct`
+- **对话生成模型**: `Qwen/Qwen3-235B-A22B-Instruct-2507`
+- **代码生成模型**: `Qwen/Qwen3-Coder-480B-A35B-Instruct`
+- **推理模型**: `Qwen/Qwen3-Coder-480B-A35B-Instruct`
 
-#### 阿里云 DashScope（可选）
+### 2. 阿里云 DashScope (可选)
 
-> **用途**: 路由模型和图片生成
+用于路由判断和辅助功能：
 
 1. 访问 [阿里云 DashScope](https://dashscope.aliyun.com/)
 2. 开通服务并获取 API Key
-3. 配置到 `dashscope.api-key`
+3. 主要用于 `qwen-turbo` 模型
 
-### 3. 文件存储配置
+## ☁️ 云服务配置 (可选)
 
-#### 阿里云 OSS
+### 阿里云 OSS 文件存储
 
-> **用途**: 存储生成的应用封面和文件
+用于存储生成的应用封面和静态文件：
 
 1. 访问 [阿里云 OSS 控制台](https://oss.console.aliyun.com/)
-2. 创建 Bucket
+2. 创建 Bucket (建议选择离用户最近的区域)
 3. 获取 AccessKey ID 和 AccessKey Secret
-4. 配置存储区域和 Bucket 名称
+4. 配置读写权限：**公共读，私有写**
 
-**建议配置**:
+### Pexels API (可选)
 
-- **区域**: 选择距离用户最近的区域
-- **读写权限**: 公共读，私有写
-- **跨域配置**: 允许前端访问
-
-### 4. 第三方服务配置
-
-#### Pexels API（可选）
-
-> **用途**: 获取高质量图片素材
+用于获取高质量图片素材：
 
 1. 访问 [Pexels API](https://www.pexels.com/api/)
 2. 注册并获取免费 API Key
-3. 配置到 `pexels.api-key`
 
-## 🛠️ 快速开始
+## 🔧 项目配置
 
 ### 1. 克隆项目
 
 ```bash
-git clone <your-repo-url>
-cd mambo-ai-platform
+git clone https://github.com/Marisalice114/mambo-studio.git
+cd mambo-studio
 ```
 
-### 2. 复制配置文件
+### 2. 后端配置
+
+#### 步骤 1: 复制配置文件
 
 ```bash
-# 复制示例配置文件
+# 复制配置示例文件
 cp application-example.yml src/main/resources/application-local.yml
 ```
 
-### 3. 编辑配置文件
+#### 步骤 2: 编辑配置文件
 
 编辑 `src/main/resources/application-local.yml`，填入您的实际配置：
 
@@ -99,147 +152,129 @@ cp application-example.yml src/main/resources/application-local.yml
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/mambo_code_platform?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
-    username: your_db_username
-    password: your_db_password
+    username: your_mysql_username
+    password: your_mysql_password
+  
   data:
     redis:
       host: localhost
       port: 6379
-      password: your_redis_password # 如果Redis有密码
+      password: # 如果设置了密码
+      database: 1
 
 langchain4j:
   open-ai:
     chat-model:
-      api-key: ms-xxxxxxxxxx # 您的ModelScope API Key
+      api-key: your_modelscope_api_key
+    streaming-chat-model:
+      api-key: your_modelscope_api_key
+    reasoning-stream-model:
+      api-key: your_modelscope_api_key
+
+# 可选配置
+dashscope:
+  api-key: your_dashscope_api_key
+
+aliyun:
+  oss:
+    access-key-id: your_oss_access_key_id
+    access-key-secret: your_oss_access_key_secret
+
+pexels:
+  api-key: your_pexels_api_key
 ```
 
-### 4. 创建数据库
-
-运行 SQL 脚本创建表结构：
-
-```bash
-# 表结构文件位于
-src/main/resources/sql/
-```
-
-### 5. 启动应用
-
-```bash
-# 使用Maven启动
-mvn spring-boot:run -Dspring.profiles.active=local
-
-# 或者使用IDE直接运行MainApplication
-```
-
-### 6. 启动前端
+### 3. 前端配置
 
 ```bash
 cd mambo-ai-platform-frontend
 npm install
+```
+
+## 🚀 启动应用
+
+### 1. 启动后端服务
+
+```bash
+# 方法1: 使用 Maven
+mvn spring-boot:run -Dspring.profiles.active=local
+
+# 方法2: 使用 IDE
+# 直接运行 MainApplication.java，并设置 VM options: -Dspring.profiles.active=local
+```
+
+### 2. 启动前端服务
+
+```bash
+cd mambo-ai-platform-frontend
 npm run dev
 ```
 
-## 🔧 环境变量配置（推荐）
+## 🌐 访问应用
 
-为了更好的安全性，建议使用环境变量配置敏感信息：
+启动成功后，您可以通过以下地址访问应用：
 
-```bash
-# Linux/macOS
-export OSS_ACCESS_KEY_ID="your_oss_access_key_id"
-export OSS_ACCESS_KEY_SECRET="your_oss_access_key_secret"
-export MODELSCOPE_API_KEY="your_modelscope_api_key"
+- **前端应用**: http://localhost:5173
+- **后端 API**: http://localhost:8234/api
+- **API 文档**: http://localhost:8234/api/doc.html
 
-# Windows
-set OSS_ACCESS_KEY_ID=your_oss_access_key_id
-set OSS_ACCESS_KEY_SECRET=your_oss_access_key_secret
-set MODELSCOPE_API_KEY=your_modelscope_api_key
+## 🔍 验证配置
+
+### 1. 数据库连接验证
+
+查看后端启动日志，确认以下信息：
+
+```
+Successfully acquired change log lock
+Running Changeset: ...
 ```
 
-然后在配置文件中引用：
+### 2. Redis 连接验证
 
-```yaml
-langchain4j:
-  open-ai:
-    chat-model:
-      api-key: ${MODELSCOPE_API_KEY:default_value}
+```
+Lettuce version: ...
+Redis connection established
 ```
 
-## 🚀 部署配置
+### 3. AI 服务验证
 
-### 生产环境配置文件
+访问前端应用，尝试创建一个简单的 HTML 项目，观察是否能正常生成代码。
 
-创建 `application-prod.yml`：
+## 🛠️ 故障排除
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://your_prod_host:3306/mambo_code_platform
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
+### 常见问题
 
-langchain4j:
-  open-ai:
-    chat-model:
-      api-key: ${MODELSCOPE_API_KEY}
-      log-requests: false # 生产环境关闭日志
-      log-responses: false
-```
+1. **数据库连接失败**
+   - 检查 MySQL 服务是否启动
+   - 验证数据库名称、用户名、密码是否正确
+   - 确认 MySQL 端口 (默认 3306) 是否开放
 
-### Docker 部署（可选）
+2. **Redis 连接失败**
+   - 检查 Redis 服务是否启动: `redis-cli ping`
+   - 验证 Redis 配置中的主机、端口、密码
 
-```dockerfile
-FROM openjdk:21-jdk-slim
-COPY target/mambo-ai-platform-*.jar app.jar
-EXPOSE 8234
-ENTRYPOINT ["java", "-jar", "/app.jar", "--spring.profiles.active=prod"]
-```
+3. **AI 服务调用失败**
+   - 检查 ModelScope API Key 是否有效
+   - 确认网络连接是否正常
+   - 查看后端日志中的详细错误信息
 
-## 📝 注意事项
+4. **前端无法访问后端**
+   - 确认后端服务已启动 (端口 8234)
+   - 检查防火墙设置
+   - 验证前端代理配置
 
-1. **安全性**
+### 日志位置
 
-   - 不要将 API 密钥提交到 Git 仓库
-   - 生产环境使用环境变量配置敏感信息
-   - 定期轮换 API 密钥
+- **后端日志**: 控制台输出 + `logs/` 目录
+- **前端日志**: 浏览器开发者工具 Console
+- **API 调用日志**: 后端启用了 `log-requests: true` 和 `log-responses: true`
 
-2. **性能优化**
+## 📚 更多资源
 
-   - Redis 建议配置持久化
-   - MySQL 建议调整连接池大小
-   - OSS 建议配置 CDN 加速
-
-3. **监控**
-   - 启用 Prometheus 监控
-   - 配置日志收集
-   - 设置告警规则
-
-## 🆘 常见问题
-
-### Q: ModelScope API 配额不足怎么办？
-
-A: 可以申请增加配额，或者配置多个 API Key 轮换使用。
-
-### Q: 数据库连接失败？
-
-A: 检查数据库服务是否启动，用户名密码是否正确，防火墙是否开放端口。
-
-### Q: Redis 连接失败？
-
-A: 检查 Redis 服务状态，确认配置的 host、port、password 是否正确。
-
-### Q: 前端无法访问后端 API？
-
-A: 检查跨域配置，确认后端端口 8234 是否正常启动。
-
-## 📧 技术支持
-
-如有问题，欢迎提交 Issue 或联系维护者。
+- **项目文档**: [README.md](README.md)
+- **API 文档**: http://localhost:8234/api/doc.html (启动后访问)
+- **技术支持**: [GitHub Issues](https://github.com/Marisalice114/mambo-studio/issues)
 
 ---
 
-**Mambo AI Platform** - 让 AI 代码生成更简单 🚀
+配置完成后，您就可以开始使用 MamboStudio 进行 AI 代码生成了！🎉
