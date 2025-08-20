@@ -34,7 +34,7 @@ MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企
 
 ### 🏠 主页 - AI 代码生成
 
-![image-20250820110350687](D:\ideaproject\mambo-ai-platform\assets\image-20250820110350687.png)
+![image-20250820110350687](.\assets\image-20250820110350687.png)
 
 ### 💬 AI 对话生成 - 实时流式响应
 
