@@ -64,8 +64,8 @@ MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/mambostudio.git
-cd mambostudio
+git clone https://github.com/Marisalice114/mambo-studio.git
+cd mambo-studio
 ```
 
 ### 2. 配置环境
@@ -84,7 +84,7 @@ vim src/main/resources/application-local.yml
 # 使用Maven启动
 mvn spring-boot:run -Dspring.profiles.active=local
 
-# 或使用IDE直接运行 MainApplication.java
+# 或使用IDE直接运行 MamboAiPlatformApplication.java
 ```
 
 ### 4. 启动前端
