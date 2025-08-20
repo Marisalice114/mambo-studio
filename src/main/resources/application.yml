@@ -9,6 +9,15 @@ spring:
     url: jdbc:mysql://localhost:3306/mambo_code_platform?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     username: root
     password: 123456
+    hikari:
+      # 连接池基础配置
+      maximum-pool-size: 10          # 减少最大连接数
+      minimum-idle: 2               # 减少最小空闲连接
+      connection-timeout: 3000      # 3秒连接超时
+      validation-timeout: 2000      # 2秒验证超时
+      idle-timeout: 600000         # 10分钟空闲超时
+      max-lifetime: 1800000        # 30分钟最大生命周期
+      leak-detection-threshold: 0  # 关闭泄漏检测以减少开销
   # redis
   data:
     redis:
@@ -50,17 +59,12 @@ management:
 
 # springdoc-openapi项目配置
 springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  api-docs:
-    path: /v3/api-docs
   group-configs:
     - group: 'default'
+      paths-to-match: '/**'
       packages-to-scan: com.hachimi.mamboaiplatform.controller
 # knife4j的增强配置，不需要增强可以不配
 knife4j:
-  enable: false
+  enable: true
   setting:
     language: zh_cn

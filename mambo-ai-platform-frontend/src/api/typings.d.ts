@@ -177,6 +177,8 @@ declare namespace API {
     userRole?: string
     createTime?: string
     updateTime?: string
+    isVip?: boolean
+    vipExpireTime?: string
   }
 
   type PageAppVO = {
@@ -273,5 +275,7 @@ declare namespace API {
     userProfile?: string
     userRole?: string
     createTime?: string
+    isVip?: boolean
+    vipExpireTime?: string
   }
 }

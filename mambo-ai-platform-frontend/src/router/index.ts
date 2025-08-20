@@ -4,6 +4,7 @@ import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserProfilePage from '@/pages/user/UserProfilePage.vue'
 import UserSettingsPage from '@/pages/user/UserSettingsPage.vue'
+import UserAppManagePage from '@/pages/user/UserAppManagePage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AppManagePage from '@/pages/admin/AppManagePage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
@@ -43,6 +44,11 @@ const router = createRouter({
       component: UserSettingsPage,
     },
     {
+      path: '/user/apps',
+      name: '我的应用',
+      component: UserAppManagePage,
+    },
+    {
       path: '/admin/userManage',
       name: '用户管理',
       component: UserManagePage,
@@ -51,6 +57,11 @@ const router = createRouter({
       path: '/admin/appManage',
       name: '应用管理',
       component: AppManagePage,
+    },
+    {
+      path: '/admin/userApps/:userId',
+      name: '用户应用管理',
+      component: () => import('@/pages/admin/UserAppsPage.vue'),
     },
     {
       path: '/admin/chatManage',

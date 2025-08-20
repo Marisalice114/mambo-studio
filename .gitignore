@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 
 application-local.yml
+application-prod.yml
 tmp
 
 ### STS ###

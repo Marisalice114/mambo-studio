@@ -7,7 +7,7 @@
           <div class="logo-section">
             <img src="@/assets/mambo-logo.svg" alt="Mambo Logo" class="register-logo" />
           </div>
-          <h1 class="register-title">Mambo AI 应用生成</h1>
+          <h1 class="register-title">Mambo Studio</h1>
           <p class="register-subtitle">用户注册</p>
           <div class="register-desc">不写一行代码，生成完整应用</div>
         </div>

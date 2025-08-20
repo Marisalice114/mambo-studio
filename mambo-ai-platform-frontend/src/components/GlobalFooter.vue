@@ -3,10 +3,10 @@
     <div class="footer-content">
       <div class="footer-decoration"></div>
       <p class="copyright">
-        <span class="brand-text">Mambo AI</span> 网页生成平台 © 2025
+        <span class="brand-text">Mambo Studio</span> AI 创作工作室 © 2025
       </p>
       <p class="subtitle">
-        轻松创建，智能生成，让创意无限可能
+        智能创作，无限可能，让每个想法都成为现实
       </p>
     </div>
   </a-layout-footer>

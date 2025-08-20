@@ -140,50 +140,67 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 105, 180, 0.8), rgba(255, 182, 193, 0.7));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.85), rgba(255, 182, 193, 0.8));
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 20px;
 }
 
 .app-card:hover .app-overlay {
   opacity: 1;
 }
 
+.app-overlay .ant-space {
+  width: 100%;
+  justify-content: center;
+}
+
 .app-overlay .ant-btn {
-  margin: 0 8px;
-  border-radius: 20px;
-  font-weight: 500;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+  height: 44px;
+  padding: 0 24px;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: none;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .app-overlay .ant-btn-primary {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: linear-gradient(135deg, #FFFFFF, #FFF8DC) !important;
   color: #FF1493 !important;
-  border: none !important;
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4) !important;
+  font-weight: 700 !important;
 }
 
 .app-overlay .ant-btn-primary:hover {
-  background: rgba(255, 255, 255, 1) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4) !important;
+  background: linear-gradient(135deg, #FFFFFF, #FFFAF0) !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.6) !important;
 }
 
 .app-overlay .ant-btn-default {
-  background: rgba(255, 105, 180, 0.2) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
   color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(10px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(15px) !important;
+  font-weight: 600 !important;
 }
 
 .app-overlay .ant-btn-default:hover {
-  background: rgba(255, 105, 180, 0.4) !important;
-  transform: translateY(-2px) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.25)) !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3) !important;
 }
 
 .app-info {
@@ -253,5 +270,36 @@ const handleViewWork = () => {
   content: '⭐';
   margin-left: 4px;
   color: #FFD700;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-overlay .ant-btn {
+    height: 38px;
+    font-size: 13px;
+    padding: 0 18px;
+    min-width: 85px;
+  }
+  
+  .app-overlay {
+    padding: 15px;
+  }
+  
+  .app-overlay .ant-space {
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-overlay .ant-btn {
+    height: 36px;
+    font-size: 12px;
+    padding: 0 16px;
+    min-width: 80px;
+  }
+  
+  .app-overlay {
+    padding: 12px;
+  }
 }
 </style>

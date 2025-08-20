@@ -166,8 +166,8 @@ onMounted(() => {
     <div class="container">
       <!-- 网站标题和描述 -->
       <div class="hero-section">
-        <h1 class="hero-title">AI 应用生成平台</h1>
-        <p class="hero-description">一句话轻松创建网站应用</p>
+        <h1 class="hero-title">Mambo Studio</h1>
+        <p class="hero-description">AI 驱动的创作工作室，一句话轻松创建网站应用</p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -412,19 +412,21 @@ onMounted(() => {
 
 .hero-title {
   font-size: 64px;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0 0 24px;
   line-height: 1.1;
+  font-family: 'Fredoka One', 'Bubblegum Sans', 'Comic Neue', 'Chilanka', 'Comic Sans MS', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', cursive, sans-serif;
   background: linear-gradient(135deg, #FF69B4 0%, #FF1493 30%, #FFB6C1 70%, #FF69B4 100%);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -2px;
+  letter-spacing: 2px;
   position: relative;
   z-index: 2;
-  animation: titleShimmer 4s ease-in-out infinite;
-  text-shadow: 0 2px 4px rgba(255, 105, 180, 0.2);
+  animation: titleShimmer 4s ease-in-out infinite, titleBounce 2s ease-in-out infinite;
+  text-shadow: 4px 4px 8px rgba(255, 105, 180, 0.4);
+  transform: perspective(300px) rotateX(8deg);
 }
 
 @keyframes titleShimmer {
@@ -436,13 +438,28 @@ onMounted(() => {
   }
 }
 
+@keyframes titleBounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: perspective(300px) rotateX(8deg) translateY(0);
+  }
+  40% {
+    transform: perspective(300px) rotateX(8deg) translateY(-8px);
+  }
+  60% {
+    transform: perspective(300px) rotateX(8deg) translateY(-4px);
+  }
+}
+
 .hero-description {
   font-size: 22px;
   margin: 0;
   color: var(--text-secondary, #666);
   position: relative;
   z-index: 2;
-  font-weight: 400;
+  font-weight: 500;
+  font-family: 'Comic Neue', 'Bubblegum Sans', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  text-shadow: 1px 1px 2px rgba(255, 105, 180, 0.2);
+  line-height: 1.4;
 }
 
 /* 输入区域 */

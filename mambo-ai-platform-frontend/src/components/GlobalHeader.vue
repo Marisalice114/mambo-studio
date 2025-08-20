@@ -5,8 +5,8 @@
       <a-col flex="200px">
         <RouterLink to="/">
           <div class="header-left">
-            <img class="logo" src="@/assets/logo.svg" alt="Mambo Logo" />
-            <h1 class="site-title">Mambo</h1>
+            <img class="logo" src="@/assets/logo.svg" alt="Mambo Studio Logo" />
+            <h1 class="site-title">Mambo Studio</h1>
           </div>
         </RouterLink>
       </a-col>
@@ -61,6 +61,11 @@
                     <UserOutlined />
                     个人信息
                   </a-menu-item>
+                  <!-- 我的应用 -->
+                  <a-menu-item @click="goToMyApps">
+                    <AppstoreOutlined />
+                    我的应用
+                  </a-menu-item>
                   <!-- 账户设置 -->
                   <a-menu-item @click="goToSettings">
                     <SettingOutlined />
@@ -97,7 +102,8 @@ import {
   CrownOutlined,
   ClockCircleOutlined,
   UserOutlined,
-  SettingOutlined
+  SettingOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { getUserAvatarUrl } from '@/utils/avatar'
@@ -154,6 +160,11 @@ const originItems = [
     title: 'AI工作流',
   },
   {
+    key: '/user/apps',
+    label: '我的应用',
+    title: '我的应用',
+  },
+  {
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
@@ -169,12 +180,22 @@ const originItems = [
 const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
     const menuKey = menu?.key as string
+    const loginUser = loginUserStore.loginUser
+    
+    // 管理员菜单只对admin用户显示
     if (menuKey?.startsWith('/admin')) {
-      const loginUser = loginUserStore.loginUser
       if (!loginUser || loginUser.userRole !== 'admin') {
         return false
       }
     }
+    
+    // 用户菜单只对已登录用户显示
+    if (menuKey?.startsWith('/user/apps')) {
+      if (!loginUser || !loginUser.id) {
+        return false
+      }
+    }
+    
     return true
   })
 }
@@ -216,6 +237,11 @@ const goToProfile = () => {
   router.push('/user/profile')
 }
 
+// 跳转到我的应用
+const goToMyApps = () => {
+  router.push('/user/apps')
+}
+
 // 跳转到账户设置
 const goToSettings = () => {
   router.push('/user/settings')
@@ -224,20 +250,29 @@ const goToSettings = () => {
 
 <style scoped>
 .header {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F8 100%);
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 2px 20px rgba(255, 105, 180, 0.1);
+  border-bottom: 1px solid rgba(255, 182, 193, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 64px;
+  line-height: 64px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--border-color, #FFE4E1);
-  box-shadow: 0 2px 8px rgba(255, 105, 180, 0.08);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   transition: all 0.3s ease;
-  padding: 8px 0;
+  padding: 0;
+  position: relative;
+  z-index: 101;
+  height: 64px;
+  max-width: 200px;
+  overflow: hidden;
 }
 
 .header-left:hover {
@@ -245,13 +280,14 @@ const goToSettings = () => {
 }
 
 .logo {
-  height: 40px;
-  width: 40px;
+  height: 32px;
+  width: 32px;
   border-radius: 50%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 2px 4px rgba(255, 105, 180, 0.2));
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 102;
+  position: relative;
 }
 
 .logo:hover {
@@ -261,16 +297,24 @@ const goToSettings = () => {
 
 .site-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  font-family: 'Comic Sans MS', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
-  background: linear-gradient(135deg, #FF69B4, #FF1493);
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Fredoka One', 'Comic Neue', 'Bubblegum Sans', 'Chilanka', 'Comic Sans MS', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  background: linear-gradient(135deg, #FF69B4, #FF1493, #FFB6C1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   transition: all 0.3s ease;
   letter-spacing: 1px;
-  text-shadow: 0 2px 4px rgba(255, 105, 180, 0.1);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: auto;
+  display: flex;
+  align-items: center;
+  text-shadow: 1px 1px 2px rgba(255, 105, 180, 0.2);
+  transform: perspective(100px) rotateX(3deg);
 }
 
 .user-login-status {

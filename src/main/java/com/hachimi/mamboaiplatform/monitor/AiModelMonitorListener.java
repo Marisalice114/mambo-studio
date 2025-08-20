@@ -21,7 +21,7 @@ public class AiModelMonitorListener implements ChatModelListener {
     private static final String REQUEST_START_TIME_KEY = "request_start_time";
     // 用于监控上下文传递（因为请求和响应事件的触发不是同一个线程）
     private static final String MONITOR_CONTEXT_KEY = "monitor_context";
-    
+
     @Resource
     private AiModelMetricsCollector aiModelMetricsCollector;
 
@@ -29,61 +29,98 @@ public class AiModelMonitorListener implements ChatModelListener {
     public void onRequest(ChatModelRequestContext requestContext) {
         // 记录请求开始时间
         requestContext.attributes().put(REQUEST_START_TIME_KEY, Instant.now());
+
         // 从监控上下文中获取信息
         MonitorContext context = MonitorContextHolder.getContext();
+        if (context == null) {
+            log.warn("MonitorContext is null in onRequest, skipping metrics collection");
+            return;
+        }
+
+        // 将监控上下文存储到attributes中，供后续方法使用
+        requestContext.attributes().put(MONITOR_CONTEXT_KEY, context);
+
         String userId = context.getUserId();
         String appId = context.getAppId();
-        // 异步调用后无法再通过 MonitorContextHolder.getContext() 获取原上下文,所以需要自行传入
-        requestContext.attributes().put(MONITOR_CONTEXT_KEY, context);
+
         // 获取模型名称
         String modelName = requestContext.chatRequest().modelName();
+
         // 记录请求指标
         aiModelMetricsCollector.recordRequest(userId, appId, modelName, "started");
+
+        log.debug("onRequest executed on thread: {}, userId: {}, appId: {}",
+                Thread.currentThread().getName(), userId, appId);
     }
 
     @Override
     public void onResponse(ChatModelResponseContext responseContext) {
         // 从属性中获取监控信息（由 onRequest 方法存储）
         Map<Object, Object> attributes = responseContext.attributes();
-        // 从监控上下文中获取信息
         MonitorContext context = (MonitorContext) attributes.get(MONITOR_CONTEXT_KEY);
+
+        if (context == null) {
+            log.warn("MonitorContext is null in onResponse, skipping metrics collection");
+            return;
+        }
+
         String userId = context.getUserId();
         String appId = context.getAppId();
+
         // 获取模型名称
         String modelName = responseContext.chatResponse().modelName();
+
         // 记录成功请求
         aiModelMetricsCollector.recordRequest(userId, appId, modelName, "success");
+
         // 记录响应时间
         recordResponseTime(attributes, userId, appId, modelName);
+
         // 记录 Token 使用情况
         recordTokenUsage(responseContext, userId, appId, modelName);
+
+        log.debug("onResponse executed on thread: {}, userId: {}, appId: {}",
+                Thread.currentThread().getName(), userId, appId);
     }
 
     @Override
     public void onError(ChatModelErrorContext errorContext) {
-        // 从监控上下文中获取信息
-        MonitorContext context = MonitorContextHolder.getContext();
+        // 从属性中获取监控信息（由 onRequest 方法存储）
+        Map<Object, Object> attributes = errorContext.attributes();
+        MonitorContext context = (MonitorContext) attributes.get(MONITOR_CONTEXT_KEY);
+
+        if (context == null) {
+            log.warn("MonitorContext is null in onError, skipping metrics collection");
+            return;
+        }
+
         String userId = context.getUserId();
         String appId = context.getAppId();
+
         // 获取模型名称和错误类型
         String modelName = errorContext.chatRequest().modelName();
         String errorMessage = errorContext.error().getMessage();
+
         // 记录失败请求
         aiModelMetricsCollector.recordRequest(userId, appId, modelName, "error");
         aiModelMetricsCollector.recordError(userId, appId, modelName, errorMessage);
-        // 记录响应时间（即使是错误响应）
-        Map<Object, Object> attributes = errorContext.attributes();
-        recordResponseTime(attributes, userId, appId, modelName);
-    }
 
+        // 记录响应时间（即使是错误响应）
+        recordResponseTime(attributes, userId, appId, modelName);
+
+        log.debug("onError executed on thread: {}, userId: {}, appId: {}",
+                Thread.currentThread().getName(), userId, appId);
+    }
 
     /**
      * 记录响应时间
      */
     private void recordResponseTime(Map<Object, Object> attributes, String userId, String appId, String modelName) {
         Instant startTime = (Instant) attributes.get(REQUEST_START_TIME_KEY);
-        Duration responseTime = Duration.between(startTime, Instant.now());
-        aiModelMetricsCollector.recordResponseTime(userId, appId, modelName, responseTime);
+        if (startTime != null) {
+            Duration responseTime = Duration.between(startTime, Instant.now());
+            aiModelMetricsCollector.recordResponseTime(userId, appId, modelName, responseTime);
+        }
     }
 
     /**

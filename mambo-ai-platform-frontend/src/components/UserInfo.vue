@@ -70,6 +70,10 @@ const userAvatarUrl = computed(() => {
   font-size: 14px;
   color: #1a1a1a;
   transition: all 0.3s ease;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* VIP用户名样式 */

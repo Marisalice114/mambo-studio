@@ -1,4 +1,5 @@
-<template>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            <template>
+
   <div id="appManagePage">
     <!-- 搜索表单 -->
     <a-form layout="inline" :model="searchParams" @finish="doSearch">
@@ -39,7 +40,14 @@
       :scroll="{ x: 1200 }"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'cover'">
+        <template v-if="column.dataIndex === 'appName'">
+          <a-button type="link" @click="viewChat(record)" class="app-name-link">
+            <a-tooltip :title="record.appName || '未命名应用'">
+              <div class="truncated-text">{{ record.appName || '未命名应用' }}</div>
+            </a-tooltip>
+          </a-button>
+        </template>
+        <template v-else-if="column.dataIndex === 'cover'">
           <a-image v-if="record.cover" :src="record.cover" :width="80" :height="60" />
           <div v-else class="no-cover">无封面</div>
         </template>
@@ -52,8 +60,10 @@
           {{ formatCodeGenType(record.codeGenType) }}
         </template>
         <template v-else-if="column.dataIndex === 'priority'">
-          <a-tag v-if="record.priority === 99" color="gold">精选</a-tag>
-          <span v-else>{{ record.priority || 0 }}</span>
+          <div class="priority-display">
+            <a-tag v-if="record.priority === 99" color="gold">精选 (99)</a-tag>
+            <span v-else class="priority-number">{{ record.priority || 0 }}</span>
+          </div>
         </template>
         <template v-else-if="column.dataIndex === 'deployedTime'">
           <span v-if="record.deployedTime">
@@ -65,7 +75,9 @@
           {{ formatTime(record.createTime) }}
         </template>
         <template v-else-if="column.dataIndex === 'user'">
-          <UserInfo :user="record.user" size="small" />
+          <div class="user-info-container" @click="goToUserApps(record.user)" style="cursor: pointer;">
+            <UserInfo :user="record.user" size="small" />
+          </div>
         </template>
         <template v-else-if="column.key === 'action'">
           <a-space>
@@ -161,13 +173,13 @@ const columns = [
   {
     title: () => createSortableTitle('创建者'),
     dataIndex: 'user',
-    width: 120,
+    width: 150,
   },
   {
     title: () => createSortableTitle('创建时间', 'createTime'),
     dataIndex: 'createTime',
     width: 160,
-    customRender: ({ record }) => {
+    customRender: ({ record }: { record: any }) => {
       return dayjs(record.createTime).format('YYYY-MM-DD HH:mm')
     }
   },
@@ -240,6 +252,18 @@ const doSearch = () => {
 // 编辑应用
 const editApp = (app: API.AppVO) => {
   router.push(`/app/edit/${app.id}`)
+}
+
+// 查看对话 - 跳转到应用对话页面
+const viewChat = (app: API.AppVO) => {
+  router.push(`/app/chat/${app.id}`)
+}
+
+// 查看用户的应用 - 跳转到用户应用管理页面
+const goToUserApps = (user: any) => {
+  if (user && user.id) {
+    router.push(`/admin/userApps/${user.id}`)
+  }
 }
 
 // 切换精选状态
@@ -369,8 +393,8 @@ const handleSort = (field: string, order: 'asc' | 'desc') => {
 
 /* 表格样式 */
 :deep(.ant-table-wrapper) {
-  padding: 24px;
-  max-width: 1400px;
+  padding: 16px;
+  max-width: calc(100vw - 32px);
   margin: 0 auto;
 }
 
@@ -524,6 +548,68 @@ const handleSort = (field: string, order: 'asc' | 'desc') => {
 :deep(.sort-button:hover) {
   color: #FF1493;
   transform: scale(1.2);
+}
+
+/* 应用名称链接样式 */
+.app-name-link {
+  font-weight: 600;
+  color: #FF69B4 !important;
+  padding: 0 !important;
+  text-decoration: none;
+  border: none;
+  background: none;
+  box-shadow: none !important;
+}
+
+.app-name-link:hover {
+  color: #FF1493 !important;
+  text-decoration: underline;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.app-name-link:focus {
+  color: #FF1493 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 文本溢出处理 */
+.truncated-text {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 优先级显示样式 */
+.priority-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.priority-number {
+  font-weight: 600;
+  color: #666;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 182, 193, 0.1);
+}
+
+/* 用户信息容器样式 */
+.user-info-container {
+  display: inline-block;
+  padding: 4px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.user-info-container:hover {
+  background: rgba(255, 105, 180, 0.1);
+  transform: scale(1.02);
 }
 
 /* 响应式设计 */

@@ -14,6 +14,10 @@
             <div class="stat-label">管理员</div>
           </div>
           <div class="stat-card">
+            <div class="stat-value">{{ vipCount }}</div>
+            <div class="stat-label">VIP用户</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-value">{{ normalCount }}</div>
             <div class="stat-label">普通用户</div>
           </div>
@@ -72,7 +76,7 @@
         @change="doTableChange"
         :loading="loading"
         class="user-table"
-        :scroll="{ x: 1000 }"
+        :scroll="{ x: 1200 }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'userAvatar'">
@@ -80,15 +84,32 @@
               {{ record.userName?.charAt(0) || 'U' }}
             </a-avatar>
           </template>
+          <template v-else-if="column.dataIndex === 'userName'">
+            <a-button type="link" @click="goToUserApps(record)" class="user-name-link">
+              <a-tooltip :title="record.userName || '未设置用户名'">
+                <div class="truncated-text">{{ record.userName || '未设置用户名' }}</div>
+              </a-tooltip>
+            </a-button>
+          </template>
           <template v-else-if="column.dataIndex === 'userRole'">
             <a-tag v-if="record.userRole === 'admin'" color="gold" class="role-tag">
               <CrownOutlined />
               管理员
             </a-tag>
+            <a-tag v-else-if="isVipUser(record)" color="purple" class="role-tag vip-tag">
+              <CrownOutlined />
+              VIP用户
+            </a-tag>
             <a-tag v-else color="blue" class="role-tag">
               <UserOutlined />
               普通用户
             </a-tag>
+          </template>
+          <template v-else-if="column.dataIndex === 'vipExpireTime'">
+            <span v-if="record.vipExpireTime" class="time-text vip-time">
+              {{ dayjs(record.vipExpireTime).format('YYYY-MM-DD HH:mm:ss') }}
+            </span>
+            <span v-else class="no-vip-text">未开通VIP</span>
           </template>
           <template v-else-if="column.dataIndex === 'createTime'">
             <span class="time-text">
@@ -113,17 +134,67 @@
 import { computed, onMounted, reactive, ref, h } from 'vue'
 import { deleteUser, listUserVoByPage } from '@/api/userController'
 import { message } from 'ant-design-vue'
-import { SearchOutlined, CrownOutlined, UserOutlined, DeleteOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined, CrownOutlined, UserOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 
 // 排序状态
 const sortInfo = ref<{ field?: string; order?: string }>({})
 
+// 创建通用的带排序按钮的标题组件
+const createSortableTitle = (title: string, sortField?: string) => {
+  if (!sortField) {
+    return title
+  }
+  return h('div', { style: 'display: flex; align-items: center; justify-content: space-between;' }, [
+    h('span', title),
+    h('div', { class: 'sort-buttons' }, [
+      h('button', {
+        class: 'sort-button',
+        onClick: () => handleSort(sortField, 'asc'),
+        title: `${title}升序`
+      }, '▲'),
+      h('button', {
+        class: 'sort-button',
+        onClick: () => handleSort(sortField, 'desc'),
+        title: `${title}降序`
+      }, '▼')
+    ])
+  ])
+}
+
+// 排序处理函数
+const handleSort = (field: string, order: 'asc' | 'desc') => {
+  // 执行排序
+  data.value.sort((a: any, b: any) => {
+    let aValue = a[field]
+    let bValue = b[field]
+    
+    // 处理时间字段
+    if (field.includes('Time')) {
+      aValue = new Date(aValue || 0).getTime()
+      bValue = new Date(bValue || 0).getTime()
+    }
+    
+    // 处理数字字段
+    if (typeof aValue === 'string' && !isNaN(Number(aValue))) {
+      aValue = Number(aValue)
+      bValue = Number(bValue)
+    }
+    
+    if (order === 'asc') {
+      return aValue > bValue ? 1 : -1
+    } else {
+      return aValue < bValue ? 1 : -1
+    }
+  })
+  
+  message.success(`已按${field}${order === 'asc' ? '升序' : '降序'}排序`)
+}
+
 const columns = [
   {
-    title: 'ID',
+    title: () => createSortableTitle('ID', 'id'),
     dataIndex: 'id',
-    sorter: true,
     width: 80,
   },
   {
@@ -132,41 +203,34 @@ const columns = [
     width: 80,
   },
   {
-    title: '账号',
+    title: () => createSortableTitle('账号', 'userAccount'),
     dataIndex: 'userAccount',
-    sorter: true,
-    width: 120,
+    width: 140,
   },
   {
-    title: '用户名',
+    title: () => createSortableTitle('用户名', 'userName'),
     dataIndex: 'userName',
-    sorter: true,
-    width: 120,
+    width: 150,
   },
   {
     title: '简介',
     dataIndex: 'userProfile',
     ellipsis: true,
-    width: 200,
+    width: 220,
   },
   {
-    title: '用户角色',
+    title: () => createSortableTitle('用户角色', 'userRole'),
     dataIndex: 'userRole',
-    sorter: true,
-    width: 120,
+    width: 140,
   },
   {
-    title: () => {
-      const isAsc = sortInfo.value.field === 'createTime' && sortInfo.value.order === 'ascend'
-      const isDesc = sortInfo.value.field === 'createTime' && sortInfo.value.order === 'descend'
-      return [
-        '创建时间',
-        isAsc && h(SortAscendingOutlined, { style: { marginLeft: '4px', color: '#FF69B4' } }),
-        isDesc && h(SortDescendingOutlined, { style: { marginLeft: '4px', color: '#FF69B4' } })
-      ]
-    },
+    title: () => createSortableTitle('VIP到期时间', 'vipExpireTime'),
+    dataIndex: 'vipExpireTime',
+    width: 180,
+  },
+  {
+    title: () => createSortableTitle('创建时间', 'createTime'),
     dataIndex: 'createTime',
-    sorter: true,
     width: 180,
   },
   {
@@ -196,6 +260,25 @@ const adminCount = computed(() =>
 const normalCount = computed(() => 
   data.value.filter(user => user.userRole === 'user').length
 )
+
+// VIP统计数据
+const vipCount = computed(() => 
+  data.value.filter(user => isVipUser(user)).length
+)
+
+// 判断用户是否为VIP
+const isVipUser = (user: any) => {
+  // 如果有VIP到期时间且还未到期，则为VIP用户
+  if (user.vipExpireTime) {
+    return dayjs(user.vipExpireTime).isAfter(dayjs())
+  }
+  // 如果有isVip字段，则根据该字段判断
+  if (user.isVip !== undefined) {
+    return user.isVip
+  }
+  // 临时逻辑：管理员默认为VIP，或者用户名包含vip的为VIP
+  return user.userRole === 'admin' || (user.userName && user.userName.toLowerCase().includes('vip'))
+}
 
 // 获取数据
 const fetchData = async () => {
@@ -282,6 +365,20 @@ const doDelete = async (id: number) => {
   }
 }
 
+// 查看用户的应用 - 跳转到该用户的应用管理页面
+const goToUserApps = (user: any) => {
+  if (user && user.id) {
+    console.log('跳转到用户应用页面，用户ID:', user.id, '用户ID类型:', typeof user.id, '用户信息:', user)
+    // 确保ID作为字符串传递，避免JavaScript数字精度问题
+    const userId = String(user.id)
+    console.log('转换后的userId:', userId)
+    // 跳转到专门显示该用户应用的页面
+    window.open(`/admin/userApps/${userId}`, '_blank')
+  } else {
+    console.error('用户信息不完整:', user)
+  }
+}
+
 // 页面加载时请求一次
 onMounted(() => {
   fetchData()
@@ -355,14 +452,14 @@ onMounted(() => {
 
 /* 搜索区域 */
 .search-section {
-  padding: 24px;
+  padding: 24px 40px;
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color, #FFE4E1);
 }
 
 .search-form {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -407,8 +504,8 @@ onMounted(() => {
 
 /* 表格区域 */
 .table-section {
-  padding: 24px;
-  max-width: 1200px;
+  padding: 24px 40px;
+  max-width: 95%;
   margin: 0 auto;
 }
 
@@ -451,9 +548,42 @@ onMounted(() => {
   padding: 4px 12px !important;
 }
 
+.vip-tag {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 12px !important;
+  background: linear-gradient(135deg, #9F7AEA, #805AD5) !important;
+  border-color: #9F7AEA !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3) !important;
+}
+
+.normal-tag {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 12px !important;
+}
+
 .time-text {
   color: var(--text-secondary, #666);
   font-size: 13px;
+}
+
+.vip-time {
+  color: #9F7AEA;
+  font-weight: 500;
+}
+
+.no-vip-text {
+  color: var(--text-secondary, #999);
+  font-size: 12px;
+  font-style: italic;
 }
 
 .delete-btn {
@@ -503,6 +633,68 @@ onMounted(() => {
 :deep(.ant-pagination-next:hover) {
   border-color: #FF69B4 !important;
   color: #FF1493 !important;
+}
+
+/* 排序按钮样式 - 与应用管理页面一致 */
+:deep(.sort-buttons) {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+}
+
+:deep(.sort-button) {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #FF69B4;
+  font-size: 10px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  padding: 1px 2px;
+}
+
+:deep(.sort-button:hover) {
+  color: #FF1493;
+  transform: scale(1.2);
+}
+
+/* 用户名链接样式 */
+.user-name-link {
+  font-weight: 600;
+  color: #FF69B4 !important;
+  padding: 0 !important;
+  text-decoration: none;
+  border: none;
+  background: none;
+  box-shadow: none !important;
+}
+
+.user-name-link:hover {
+  color: #FF1493 !important;
+  text-decoration: underline;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.user-name-link:focus {
+  color: #FF1493 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 文本溢出处理 */
+.truncated-text {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.user-name-link .truncated-text {
+  max-width: 130px;
 }
 
 /* 响应式设计 */

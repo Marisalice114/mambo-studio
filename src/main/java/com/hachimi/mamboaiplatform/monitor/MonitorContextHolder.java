@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 
 /**
- * 同线程内共享参数
+ * 监控上下文持有者（同线程内共享）
  */
 @Slf4j
 public class MonitorContextHolder {

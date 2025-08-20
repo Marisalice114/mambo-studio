@@ -3,7 +3,7 @@
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName || '网站生成器' }}</h1>
+        <h1 class="app-name">{{ appInfo?.appName || 'AI创作助手' }}</h1>
         <a-tag v-if="appInfo?.codeGenType" color="blue" class="code-gen-type-tag">
           {{ formatCodeGenType(appInfo.codeGenType) }}
         </a-tag>
@@ -319,6 +319,7 @@ const appDetailVisible = ref(false)
 
 // 显示应用详情
 const showAppDetail = () => {
+  console.log('点击了应用详情按钮')
   appDetailVisible.value = true
 }
 
@@ -682,6 +683,7 @@ const scrollToBottom = () => {
 
 // 下载代码
 const downloadCode = async () => {
+  console.log('点击了下载代码按钮', { appId: appId.value, isOwner: isOwner.value })
   if (!appId.value) {
     message.error('应用ID不存在')
     return
@@ -720,6 +722,7 @@ const downloadCode = async () => {
 
 // 部署应用
 const deployApp = async () => {
+  console.log('点击了部署按钮', { appId: appId.value })
   if (!appId.value) {
     message.error('应用ID不存在')
     return
@@ -856,6 +859,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-left {
@@ -878,6 +887,8 @@ onUnmounted(() => {
 .header-right {
   display: flex;
   gap: 12px;
+  position: relative;
+  z-index: 11;
 }
 
 /* 主要内容区域 */
