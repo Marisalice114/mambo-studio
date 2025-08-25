@@ -171,6 +171,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         }
+
+        // 实时校验并更新VIP状态
+        boolean realTimeVipStatus = this.isVip(currentUser);
+        // isVip方法内部已经处理了状态不一致的情况，这里currentUser对象已经是最新状态
+
         return currentUser;
     }
 
@@ -193,7 +198,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     }
 
     /**
-     * 获取查询条件包装器
+     * 获取查询条件���装器
      */
     @Override
     public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {

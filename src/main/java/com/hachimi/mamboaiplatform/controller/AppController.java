@@ -259,7 +259,7 @@ public class AppController {
   /**
    * 管理员更新应用
    *
-   * @param appAdminUpdateRequest 更新请求
+   * @param appAdminUpdateRequest 更新���求
    * @return 更新结果
    */
   @PostMapping("/admin/update")
@@ -284,7 +284,7 @@ public class AppController {
   /**
    * 管理员分页获取应用列表
    *
-   * @param appQueryRequest 查询请求
+   * @param appQueryRequest 查询请��
    * @return 应用列表
    */
   @PostMapping("/admin/list/page/vo")
@@ -336,10 +336,19 @@ public class AppController {
     // 2. 查询应用信息
     App app = appService.getById(appId);
     ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-    // 3. 权限校验：只有应用创建者可以下载代码和只有vip用户可以下载代码
+    // 3. 权限校验：应用创建者可以下载自己的应用，VIP用户可以下载精选应用
     User loginUser = userService.getLoginUser(request);
-    if (!app.getUserId().equals(loginUser.getId()) || !userService.isVip(loginUser)) {
-      throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限下载该应用代码");
+    boolean isAppOwner = app.getUserId().equals(loginUser.getId());
+    boolean isVipUser = userService.isVip(loginUser);
+    boolean isGoodApp = AppConstant.GOOD_APP_PRIORITY.equals(app.getPriority());
+
+    // 权限判断：应用创建者可以下载自己的应用，VIP用户可以下载精选应用
+    if (!isAppOwner && !(isVipUser && isGoodApp)) {
+      if (!isVipUser && isGoodApp) {
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "精选应用仅VIP用户可下载，请先升级VIP");
+      } else {
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限下载该应用代码");
+      }
     }
     // 4. 构建应用代码目录路径（生成目录，非部署目录）
     String codeGenType = app.getCodeGenType();

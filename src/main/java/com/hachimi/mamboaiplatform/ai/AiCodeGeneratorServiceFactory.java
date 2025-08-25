@@ -100,10 +100,10 @@ public class AiCodeGeneratorServiceFactory {
     MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
         .id(appId)
         .chatMemoryStore(redisChatMemoryStore)
-        .maxMessages(20)
+        .maxMessages(100) // 增加消息数量限制，避免重要上下文丢失
         .build();
     // 从数据库中加载会话历史到记忆中
-    chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);
+    chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 50); // 增加加载的历史消息数量
     return switch (codeGenType) {
       // 普通生成
       case HTML, MULTI_FILE -> {
@@ -134,7 +134,7 @@ public class AiCodeGeneratorServiceFactory {
             .tools(
                 (Object[]) toolManager.getAllTools())
             // 处理调用不存在的工具
-            .maxSequentialToolsInvocations(20)
+            .maxSequentialToolsInvocations(50) // 增加工具调用限制，支持更复杂的Vue项目生成
             .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(toolExecutionRequest,
                 "Error: there is no tool named '" + toolExecutionRequest.name()))
             .inputGuardrails(new PromptSafetyInputGuardrail())
@@ -160,7 +160,7 @@ public class AiCodeGeneratorServiceFactory {
 
   /**
    * 构造缓存键(从一个参数变成了两个参数)
-   * 
+   *
    * @param appId
    * @param codeGenType
    * @return

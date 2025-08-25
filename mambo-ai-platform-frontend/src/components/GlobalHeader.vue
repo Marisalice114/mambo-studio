@@ -26,15 +26,15 @@
             <a-dropdown>
               <a-space>
                 <!-- 用户头像 -->
-                <a-avatar 
-                  :src="userAvatarUrl" 
+                <a-avatar
+                  :src="userAvatarUrl"
                   :class="{ 'vip-avatar': isVipUser }"
                 >
                   {{ loginUserStore.loginUser.userName?.charAt(0) || 'U' }}
                 </a-avatar>
                 <!-- 用户名 -->
-                <span 
-                  class="user-name" 
+                <span
+                  class="user-name"
                   :class="{ 'vip-user-name': isVipUser }"
                 >
                   {{ loginUserStore.loginUser.userName ?? '无名' }}
@@ -120,18 +120,37 @@ router.afterEach((to) => {
 // VIP相关计算属性
 const isVipUser = computed(() => {
   const user = loginUserStore.loginUser
-  // 临时测试：可以通过用户角色或者用户名来判断VIP状态
-  // 如果用户角色是admin或者用户名包含"vip"，则显示为VIP用户（仅用于测试）
-  return user && (user.userRole === 'admin' || 
-                  (user.userName && user.userName.toLowerCase().includes('vip')))
+  if (!user || !user.id) {
+    return false
+  }
+
+  // 使用后端返回的实际VIP状态和过期时间判断
+  const isVip = user.isVip
+  const vipExpireTime = user.vipExpireTime
+
+  // 如果没有VIP状态信息，返回false
+  if (isVip === undefined || isVip === null) {
+    return false
+  }
+
+  // 如果标记为VIP但没有过期时间，返回false
+  if (isVip && !vipExpireTime) {
+    return false
+  }
+
+  // 如果有过期时间，检查是否已过期
+  if (vipExpireTime) {
+    const now = dayjs()
+    const expireDate = dayjs(vipExpireTime)
+    return isVip && expireDate.isAfter(now)
+  }
+
+  return Boolean(isVip)
 })
 
 const vipExpireTime = computed(() => {
-  // 临时测试VIP到期时间
-  if (isVipUser.value) {
-    return dayjs().add(30, 'day').format('YYYY-MM-DD HH:mm:ss')
-  }
-  return null
+  const user = loginUserStore.loginUser
+  return user?.vipExpireTime || null
 })
 
 const formatVipExpireTime = computed(() => {
@@ -162,7 +181,7 @@ const originItems = [
   {
     key: '/user/apps',
     label: '我的应用',
-    title: '我的应用',
+    title: '我的��用',
   },
   {
     key: '/admin/userManage',
@@ -181,21 +200,21 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
     const menuKey = menu?.key as string
     const loginUser = loginUserStore.loginUser
-    
+
     // 管理员菜单只对admin用户显示
     if (menuKey?.startsWith('/admin')) {
       if (!loginUser || loginUser.userRole !== 'admin') {
         return false
       }
     }
-    
+
     // 用户菜单只对已登录用户显示
     if (menuKey?.startsWith('/user/apps')) {
       if (!loginUser || !loginUser.id) {
         return false
       }
     }
-    
+
     return true
   })
 }

@@ -231,10 +231,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     // 2.查询应用信息
     App app = this.getById(appId);
     ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-    // 3.验证应用部署权限，只有本人才能部署应用
-    if (!app.getUserId().equals(loginUser.getId())) {
-      throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
+
+    // 3.验证应用部署权限
+    boolean isAppOwner = app.getUserId().equals(loginUser.getId());
+    boolean isVipUser = userService.isVip(loginUser);
+    boolean isGoodApp = AppConstant.GOOD_APP_PRIORITY.equals(app.getPriority());
+
+    // 权限判断：应用创建者可以部署自己的应用，VIP用户可以部署精选应用
+    if (!isAppOwner && !(isVipUser && isGoodApp)) {
+      if (!isVipUser && isGoodApp) {
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "精选应用仅VIP用户可部署，请先升级VIP");
+      } else {
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
+      }
     }
+
     // 4.验证应用是否为vip专属，并且检验用户是否为vip
     if (app.getIsVipOnly() && !userService.isVip(loginUser)) {
       throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "该应用为 VIP 专属应用，请先开通 VIP");
@@ -272,7 +283,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     } catch (Exception e) {
       throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用部署失败：" + e.getMessage());
     }
-    // 9.更新应用的deploykey和部署时间
+    // 9.更新应用的deploykey和部��时间
     App updateApp = new App();
     updateApp.setId(appId);
     updateApp.setDeployKey(deployKey);
