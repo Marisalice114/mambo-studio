@@ -164,12 +164,17 @@ public class AiCodeGeneratorFacade {
     return Flux.create(sink -> {
       // 工具调用计数器，用于监控（不设限制）
       final AtomicInteger toolCallCount = new AtomicInteger(0);
-
+        // 预先捕获当前用户上下文（可能为 null）
+        com.hachimi.mamboaiplatform.model.entity.User contextUser = com.hachimi.mamboaiplatform.context.UserContextHolder.get();
+        // 工具调用计数器，用于监控（不设限制）
       tokenStream.onPartialResponse((String partialResponse) -> {
         // 在每个回调中恢复监控上下文
         MonitorContextHolder.setContext(contextForCallbacks);
 
         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+          if (contextUser != null) {
+            com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+          }
         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
         log.debug("AI 部分响应: {}",
             partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
@@ -178,6 +183,9 @@ public class AiCodeGeneratorFacade {
             // 在每个回调中恢复监控上下文
             MonitorContextHolder.setContext(contextForCallbacks);
 
+              if (contextUser != null) {
+                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+              }
             log.debug("工具调用: {} (参数长度: {})", toolExecutionRequest.name(),
                 toolExecutionRequest.arguments().length());
 
@@ -188,6 +196,9 @@ public class AiCodeGeneratorFacade {
             // 在每个回调中恢复监控上下文
             MonitorContextHolder.setContext(contextForCallbacks);
 
+              if (contextUser != null) {
+                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+              }
             int currentCount = toolCallCount.incrementAndGet();
             log.info("工具执行完成 #{}: {} -> {}", currentCount, toolExecution.request().name(),
                 toolExecution.result().length() > 100 ? toolExecution.result().substring(0, 100) + "..."
@@ -199,16 +210,32 @@ public class AiCodeGeneratorFacade {
             // 在每个回调中恢复监控上下文
             MonitorContextHolder.setContext(contextForCallbacks);
 
+              if (contextUser != null) {
+                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+              }
             log.info("AI 响应完成，总工具调用次数: {}", toolCallCount.get());
             // 同步执行vue项目，确保预览时项目已经就绪
             String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
-            vueProjectBuilder.buildVueProject(pathName);
+            boolean buildSuccess = vueProjectBuilder.buildVueProject(pathName);
+            // 将构建结果也写入到流中，便于前端明确知道是否构建成功
+            String buildMsg;
+            if (buildSuccess) {
+              buildMsg = "\n\n✅ Vue 项目构建成功，可以预览。\n";
+            } else {
+              buildMsg = "\n\n❌ Vue 项目构建失败，请检查 package.json / 依赖或构建日志。\n";
+              log.warn("Vue 项目构建失败（已通知前端），路径: {}", pathName);
+            }
+            AiResponseMessage buildResultMessage = new AiResponseMessage(buildMsg);
+            sink.next(JSONUtil.toJsonStr(buildResultMessage));
             sink.complete();
           })
           .onError((Throwable error) -> {
             // 在错误回调中也恢复监控上下文
             MonitorContextHolder.setContext(contextForCallbacks);
 
+              if (contextUser != null) {
+                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+              }
             log.error("TokenStream 处理错误，工具调用次数: {}", toolCallCount.get(), error);
             sink.error(error);
           })

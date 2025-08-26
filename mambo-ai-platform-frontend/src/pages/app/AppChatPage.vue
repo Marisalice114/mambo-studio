@@ -540,6 +540,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           fullContent += content
           messages.value[aiMessageIndex].content = fullContent
           messages.value[aiMessageIndex].loading = false
+          // 监测后端追加的构建结果提示
+          if (content.includes('Vue 项目构建失败')) {
+            generationStatus.value = { stage: '构建失败', progress: 100, isActive: false }
+            messages.value[aiMessageIndex].status = 'error'
+          } else if (content.includes('Vue 项目构建成功')) {
+            generationStatus.value = { stage: '构建成功', progress: 100, isActive: false }
+            messages.value[aiMessageIndex].status = 'completed'
+          }
           
           // 更新生成状态
           const now = Date.now()

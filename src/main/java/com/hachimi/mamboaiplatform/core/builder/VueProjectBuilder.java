@@ -1,6 +1,11 @@
 package com.hachimi.mamboaiplatform.core.builder;
 
 import cn.hutool.core.util.RuntimeUtil;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -120,11 +125,7 @@ public class VueProjectBuilder {
     private boolean executeCommand(File workingDir, String command, int timeoutSeconds) {
         try {
             log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), command);
-            Process process = RuntimeUtil.exec(
-                    null,
-                    workingDir,
-                    command.split("\\s+") // 命令分割为数组
-            );
+            Process process = RuntimeUtil.exec(null, workingDir, command.split("\\s+"));
             // 等待进程完成，设置超时
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
@@ -133,6 +134,15 @@ public class VueProjectBuilder {
                 return false;
             }
             int exitCode = process.exitValue();
+            // 尝试读取输出（即使非0也读取，方便排查）
+            String stdOut = readStreamQuietly(process.getInputStream());
+            String stdErr = readStreamQuietly(process.getErrorStream());
+            if (!stdOut.isEmpty()) {
+                log.info("[CMD STDOUT] {}\n{}", command, truncate(stdOut));
+            }
+            if (!stdErr.isEmpty()) {
+                log.warn("[CMD STDERR] {}\n{}", command, truncate(stdErr));
+            }
             if (exitCode == 0) {
                 log.info("命令执行成功: {}", command);
                 return true;
@@ -144,6 +154,21 @@ public class VueProjectBuilder {
             log.error("执行命令失败: {}, 错误信息: {}", command, e.getMessage());
             return false;
         }
+    }
+
+    private String readStreamQuietly(InputStream is) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            return reader.lines().collect(Collectors.joining("\n"));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String truncate(String s) {
+        if (s.length() > 4000) { // 防止日志过长
+            return s.substring(0, 4000) + "... (truncated)";
+        }
+        return s;
     }
 
 }

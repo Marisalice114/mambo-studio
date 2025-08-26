@@ -9,6 +9,7 @@ import com.hachimi.mamboaiplatform.common.DeleteRequest;
 import com.hachimi.mamboaiplatform.common.ResultUtils;
 import com.hachimi.mamboaiplatform.constant.AppConstant;
 import com.hachimi.mamboaiplatform.constant.UserConstant;
+import com.hachimi.mamboaiplatform.context.UserContextHolder;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.exception.ThrowUtils;
@@ -33,6 +34,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import com.hachimi.mamboaiplatform.model.entity.App;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -74,18 +76,26 @@ public class AppController {
     ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
     ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
     // 获取当前登录用户
-    User loginUser = userService.getLoginUser(request);
-    // 调用服务生成代码（流式）
-    Flux<String> stringFlux = appService.chatToGenCode(appId, message, loginUser);
-    // 对这个流式结果进行一层封装，防止空格的丢失
-    return stringFlux.map(chunk -> {
-      // 快速构造一个map
-      Map<String, String> resultMap = Map.of("d", chunk);
-      String jsonData = JSONUtil.toJsonStr(resultMap);
-      return ServerSentEvent.<String>builder()
-          .data(jsonData)
-          .build();
-    });
+  User loginUser = userService.getLoginUser(request);
+  // 设置用户上下文，供后续异步回调使用
+  UserContextHolder.set(loginUser);
+  // 调用服务生成代码（流式）
+  Flux<String> stringFlux = appService.chatToGenCode(appId, message, loginUser)
+    .doFinally(sig -> UserContextHolder.clear());
+  // 对这个流式结果进行一层封装，防止空格的丢失
+  Flux<ServerSentEvent<String>> dataFlux = stringFlux.map(chunk -> {
+    Map<String, String> resultMap = Map.of("d", chunk);
+    String jsonData = JSONUtil.toJsonStr(resultMap);
+    return ServerSentEvent.<String>builder()
+      .data(jsonData)
+      .build();
+  });
+  // 在正常完成时发送一个 done 事件，方便前端统一处理（之前只有异常才有 done）
+  ServerSentEvent<String> doneEvent = ServerSentEvent.<String>builder()
+    .event("done")
+    .data("{}")
+    .build();
+  return dataFlux.concatWith(Mono.just(doneEvent));
   }
 
   /**

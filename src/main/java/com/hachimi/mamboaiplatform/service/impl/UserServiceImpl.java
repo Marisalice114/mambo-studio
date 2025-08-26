@@ -159,6 +159,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
+        // 快速路径：若上下文已有用户则直接使用（再做一次数据库校验保持语义一致）
+        try {
+            com.hachimi.mamboaiplatform.context.UserContextHolder.get();
+        } catch (Throwable ignore) {}
+        com.hachimi.mamboaiplatform.model.entity.User ctxUser = com.hachimi.mamboaiplatform.context.UserContextHolder.get();
+        if (ctxUser != null && ctxUser.getId() != null) {
+            User latest = this.getById(ctxUser.getId());
+            if (latest != null) {
+                return latest;
+            }
+        }
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         //异常处理
@@ -173,8 +184,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         }
 
         // 实时校验并更新VIP状态
-        boolean realTimeVipStatus = this.isVip(currentUser);
-        // isVip方法内部已经处理了状态不一致的情况，这里currentUser对象已经是最新状态
+    this.isVip(currentUser); // 触发状态校验与可能的更新
+    // isVip 方法内部已处理状态一致性
 
         return currentUser;
     }
