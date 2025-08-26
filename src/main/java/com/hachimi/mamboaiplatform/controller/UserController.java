@@ -144,7 +144,7 @@ public class UserController {
    * 注意：这里移除了错误的权限注解
    */
   @PostMapping("/login")
-  @RateLimit(limitType = RateLimitType.IP, rate = 10, rateInterval = 300, message = "登录尝试过于频繁，5分钟内最多尝试10次")
+  @RateLimit(limitType = RateLimitType.IP, rate = 20, rateInterval = 300, message = "登录尝试过于频繁，5分钟内最多尝试20次")
   public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
       HttpServletRequest request) {
     ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);

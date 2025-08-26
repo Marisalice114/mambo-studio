@@ -5,7 +5,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
-import com.google.common.util.concurrent.Monitor;
 import com.hachimi.mamboaiplatform.ai.AiCodeGenTypeRoutingService;
 import com.hachimi.mamboaiplatform.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.hachimi.mamboaiplatform.constant.AppConstant;
@@ -27,6 +26,7 @@ import com.hachimi.mamboaiplatform.model.vo.UserPublicVO;
 import com.hachimi.mamboaiplatform.monitor.MonitorContext;
 import com.hachimi.mamboaiplatform.monitor.MonitorContextHolder;
 import com.hachimi.mamboaiplatform.service.AppService;
+import com.hachimi.mamboaiplatform.service.GenerationStatusService;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
 import com.hachimi.mamboaiplatform.service.ScreenshotService;
 import com.hachimi.mamboaiplatform.service.UserService;
@@ -69,6 +69,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
   @Resource
   private StreamHandlerExecutor streamHandlerExecutor;
+
+  @Resource
+  private GenerationStatusService generationStatusService;
 
   @Resource
   private VueProjectBuilder vueProjectBuilder;
@@ -179,9 +182,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             .userId(loginUser.getId().toString())
             .appId(appId.toString())
             .build());
-    // 8. 调用 AI 生成代码，并返回结果流
+    // 8. 标记生成状态 running（sessionId 暂用时间戳）
+    try {
+      String sessionId = String.valueOf(System.currentTimeMillis());
+      generationStatusService.markRunning(appId, sessionId);
+      com.hachimi.mamboaiplatform.core.GenerationSessionRegistry.setSession(appId, sessionId);
+    } catch (Exception e) {
+      log.warn("标记运行状态失败 appId={} error={}", appId, e.getMessage());
+    }
+    // 9. 调用 AI 生成代码，并返回结果流
     Flux<String> stringFlux = aiCodeGeneratorFacade.generateCodeAndSaveStream(message, codeGenTypeEnum, appId);
-    // 9.收集响应内容并在完成过后记录到对话历史中 异步
+    // 10.收集响应内容并在完成过后记录到对话历史中 异步
     return streamHandlerExecutor.doExecutor(stringFlux, codeGenTypeEnum, chatHistoryService, appId, loginUser)
         .doFinally(signalType -> {
           MonitorContextHolder.clearContext(); // 异步清除上下文

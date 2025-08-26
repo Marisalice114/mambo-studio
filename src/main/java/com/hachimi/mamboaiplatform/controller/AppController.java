@@ -19,6 +19,7 @@ import com.hachimi.mamboaiplatform.model.vo.AppVO;
 import com.hachimi.mamboaiplatform.ratelimit.annotation.RateLimit;
 import com.hachimi.mamboaiplatform.ratelimit.enums.RateLimitType;
 import com.hachimi.mamboaiplatform.service.AppService;
+import com.hachimi.mamboaiplatform.service.GenerationStatusService;
 import com.hachimi.mamboaiplatform.service.ProjectDownloadService;
 import com.hachimi.mamboaiplatform.service.UserService;
 import com.mybatisflex.core.paginate.Page;
@@ -59,6 +60,9 @@ public class AppController {
   @Resource
   private ProjectDownloadService projectDownloadService;
 
+  @Resource
+  private GenerationStatusService generationStatusService;
+
   /**
    * 应用聊天生成代码（流式 SSE）
    *
@@ -76,26 +80,56 @@ public class AppController {
     ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
     ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
     // 获取当前登录用户
-  User loginUser = userService.getLoginUser(request);
-  // 设置用户上下文，供后续异步回调使用
-  UserContextHolder.set(loginUser);
-  // 调用服务生成代码（流式）
-  Flux<String> stringFlux = appService.chatToGenCode(appId, message, loginUser)
-    .doFinally(sig -> UserContextHolder.clear());
-  // 对这个流式结果进行一层封装，防止空格的丢失
-  Flux<ServerSentEvent<String>> dataFlux = stringFlux.map(chunk -> {
-    Map<String, String> resultMap = Map.of("d", chunk);
-    String jsonData = JSONUtil.toJsonStr(resultMap);
-    return ServerSentEvent.<String>builder()
-      .data(jsonData)
-      .build();
-  });
-  // 在正常完成时发送一个 done 事件，方便前端统一处理（之前只有异常才有 done）
-  ServerSentEvent<String> doneEvent = ServerSentEvent.<String>builder()
-    .event("done")
-    .data("{}")
-    .build();
-  return dataFlux.concatWith(Mono.just(doneEvent));
+    User loginUser = userService.getLoginUser(request);
+    // 设置用户上下文，供后续异步回调使用
+    UserContextHolder.set(loginUser);
+    // 调用服务生成代码（流式）
+    Flux<String> stringFlux = appService.chatToGenCode(appId, message, loginUser)
+        .doFinally(sig -> UserContextHolder.clear());
+    // 对这个流式结果进行一层封装，防止空格的丢失
+    Flux<ServerSentEvent<String>> dataFlux = stringFlux.map(chunk -> {
+      Map<String, String> resultMap = Map.of("d", chunk);
+      String jsonData = JSONUtil.toJsonStr(resultMap);
+      return ServerSentEvent.<String>builder()
+          .data(jsonData)
+          .build();
+    });
+    // 在正常完成时发送一个 done 事件，方便前端统一处理（之前只有异常才有 done）
+    ServerSentEvent<String> doneEvent = ServerSentEvent.<String>builder()
+        .event("done")
+        .data("{}")
+        .build();
+    return dataFlux.concatWith(Mono.just(doneEvent));
+  }
+
+  /** 主动取消当前生成 */
+  @PostMapping("/gen/cancel")
+  public BaseResponse<?> cancelGen(@RequestParam Long appId) {
+    if (appId == null || appId <= 0) {
+      return ResultUtils.error(ErrorCode.PARAMS_ERROR, "appId 无效");
+    }
+    String sessionId = com.hachimi.mamboaiplatform.core.GenerationSessionRegistry.getSession(appId);
+    if (sessionId == null) {
+      return ResultUtils.success("no_active_generation");
+    }
+    com.hachimi.mamboaiplatform.core.GenerationSessionRegistry.cancel(appId);
+    generationStatusService.markStopped(appId, sessionId, "user_stopped");
+    return ResultUtils.success("cancelled");
+  }
+
+  /**
+   * 获取当前代码生成 / 构建状态
+   */
+  @GetMapping("/gen/status")
+  public BaseResponse<?> getGenStatus(@RequestParam Long appId) {
+    if (appId == null || appId <= 0) {
+      return ResultUtils.error(ErrorCode.PARAMS_ERROR, "appId 无效");
+    }
+    var status = generationStatusService.getStatus(appId);
+    if (status == null) {
+      return ResultUtils.success(Map.of("status", "none"));
+    }
+    return ResultUtils.success(status);
   }
 
   /**

@@ -16,6 +16,17 @@
           应用详情
         </a-button>
         <a-button
+            v-if="isOwner && isGenerating"
+            type="default"
+            danger
+            @click="stopGeneration"
+        >
+          <template #icon>
+            <StopOutlined />
+          </template>
+          停止生成
+        </a-button>
+        <a-button
             type="primary"
             ghost
             @click="downloadCode"
@@ -238,6 +249,7 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
+import { StopOutlined } from '@ant-design/icons-vue'
 
 import {
   CloudUploadOutlined,
@@ -283,6 +295,208 @@ const loadingHistory = ref(false)
 const hasMoreHistory = ref(false)
 const lastCreateTime = ref<string>()
 const historyLoaded = ref(false)
+
+// 生成状态轮询
+const statusPollingTimer = ref<number | null>(null)
+const statusPollingAttempts = ref(0)
+// 刷新恢复时用来标记是否已插入运行中占位 AI 消息
+const recoveryRunningInserted = ref(false)
+const MAX_ATTEMPTS_FAST = 10 // 前 10 次 2s 间隔（20s）
+const MAX_ATTEMPTS_TOTAL = 25 // 再加 15 次 *5s 约 95s 总时长
+
+const stopStatusPolling = () => {
+  if (statusPollingTimer.value) {
+    window.clearTimeout(statusPollingTimer.value)
+    statusPollingTimer.value = null
+  }
+  statusPollingAttempts.value = 0
+}
+
+const scheduleNextStatusPoll = (delay: number) => {
+  stopStatusPolling()
+  statusPollingTimer.value = window.setTimeout(pollGenerationStatus, delay)
+}
+
+const shouldStartStatusPolling = () => {
+  if (isGenerating.value) return false
+  if (!appId.value) return false
+  if (messages.value.length === 0) return false
+  // 判断最后一条是否为用户消息且后面没有 AI 回复（典型：刷新时丢失 AI streaming 消息）
+  const last = messages.value[messages.value.length - 1]
+  if (last.type === 'ai') return false
+  // 是否存在该用户消息之后的 AI 消息（正常不会；为安全再检测）
+  // 扫描：找到最后一个 user 的索引，之后应有 ai；若没有则需要轮询
+  let lastUserIndex = -1
+  for (let i = messages.value.length - 1; i >= 0; i--) {
+    if (messages.value[i].type === 'user') { lastUserIndex = i; break }
+  }
+  if (lastUserIndex === -1) return false
+  for (let i = lastUserIndex + 1; i < messages.value.length; i++) {
+    if (messages.value[i].type === 'ai') return false
+  }
+  return true
+}
+
+const insertRecoveredAiMessage = (text: string, status: 'completed' | 'error') => {
+  messages.value.push({
+    type: 'ai',
+    content: text,
+    loading: false,
+    status
+  })
+  nextTick().then(scrollToBottom)
+}
+
+const pollGenerationStatus = async () => {
+  if (!appId.value) { stopStatusPolling(); return }
+  try {
+    const res = await request.get('/app/gen/status', { params: { appId: appId.value } })
+    if (res.data.code === 0) {
+      const data = res.data.data
+      const status = data?.status
+      if (status === 'running') {
+        // 如果刷新后还在运行且尚未插入占位 AI 消息，补一个占位（用户看到正在继续）
+        if (!recoveryRunningInserted.value) {
+          messages.value.push({
+            type: 'ai',
+            content: '',
+            loading: true,
+            status: 'generating'
+          })
+          generationStatus.value = { stage: '继续生成中', progress: 0, isActive: true }
+          recoveryRunningInserted.value = true
+          nextTick().then(scrollToBottom)
+        }
+        statusPollingAttempts.value++
+        const delay = statusPollingAttempts.value <= MAX_ATTEMPTS_FAST ? 2000 : 5000
+        if (statusPollingAttempts.value < MAX_ATTEMPTS_TOTAL) {
+          scheduleNextStatusPoll(delay)
+        } else {
+          insertRecoveredAiMessage('（生成仍在进行，已超出轮询时间，请稍后手动刷新或重新发起指令）', 'error')
+          stopStatusPolling()
+        }
+      } else if (status === 'built') {
+        // 构建完成：多次重试拉取历史以获取完整 AI 回复（考虑数据库写入延迟）
+        let hasAiAfter = false
+        let retryCount = 0
+        const maxRetries = 3
+        
+        while (!hasAiAfter && retryCount < maxRetries) {
+          if (retryCount > 0) {
+            // 等待一段时间再重试，给数据库保存操作时间
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+          
+          await loadChatHistory() // 重新拉一次最新 10 条
+          
+          // 判断最后一个 user 之后是否已有 ai 回复
+          let lastUserIndex = -1
+          for (let i = messages.value.length - 1; i >= 0; i--) {
+            if (messages.value[i].type === 'user') { lastUserIndex = i; break }
+          }
+          
+          if (lastUserIndex !== -1) {
+            for (let i = lastUserIndex + 1; i < messages.value.length; i++) {
+              if (messages.value[i].type === 'ai') { 
+                hasAiAfter = true
+                break
+              }
+            }
+          }
+          
+          retryCount++
+          console.log(`构建完成恢复历史重试 ${retryCount}/${maxRetries}, hasAiAfter: ${hasAiAfter}`)
+        }
+        
+        if (!hasAiAfter) {
+          // 多次重试后仍未获取到完整 AI 回复，插入占位
+          insertRecoveredAiMessage('生成已完成（刷新期间内容未保留）。可在右侧预览区查看结果。', 'completed')
+        }
+        updatePreview()
+        stopStatusPolling()
+        recoveryRunningInserted.value = false
+      } else if (status === 'failed') {
+        // 失败状态：多次重试拉取历史
+        let hasAiAfter = false
+        let retryCount = 0
+        const maxRetries = 2
+        
+        while (!hasAiAfter && retryCount < maxRetries) {
+          if (retryCount > 0) {
+            await new Promise(resolve => setTimeout(resolve, 800))
+          }
+          
+          await loadChatHistory()
+          
+          let lastUserIndex = -1
+          for (let i = messages.value.length - 1; i >= 0; i--) {
+            if (messages.value[i].type === 'user') { lastUserIndex = i; break }
+          }
+          
+          if (lastUserIndex !== -1) {
+            for (let i = lastUserIndex + 1; i < messages.value.length; i++) {
+              if (messages.value[i].type === 'ai') { 
+                hasAiAfter = true
+                break
+              }
+            }
+          }
+          
+          retryCount++
+        }
+        
+        if (!hasAiAfter) {
+          insertRecoveredAiMessage('本次生成失败：' + (data?.message || '请重试'), 'error')
+        }
+        stopStatusPolling()
+        recoveryRunningInserted.value = false
+      } else if (status === 'stopped') {
+        // 取消状态：重试拉取历史，查找是否已有取消提示
+        let hasCancelMessage = false
+        let retryCount = 0
+        const maxRetries = 2
+        
+        while (!hasCancelMessage && retryCount < maxRetries) {
+          if (retryCount > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          
+          await loadChatHistory()
+          
+          // 检查是否已有取消相关的 AI 消息
+          hasCancelMessage = messages.value.some(m => 
+            m.type === 'ai' && m.content && 
+            (m.content.includes('已在过程中被手动取消') || m.content.includes('用户已取消'))
+          )
+          
+          retryCount++
+        }
+        
+        if (!hasCancelMessage) {
+          insertRecoveredAiMessage('⏹️ 本次生成已在过程中被手动取消（刷新后补齐提示）。', 'error')
+        }
+        stopStatusPolling()
+        recoveryRunningInserted.value = false
+      } else {
+        // none 或未知，停止
+        stopStatusPolling()
+  recoveryRunningInserted.value = false
+      }
+    } else {
+      // 接口异常，稍后再试（不提升 attempts 以免过早终止）
+      scheduleNextStatusPoll(4000)
+    }
+  } catch (err) {
+    console.warn('获取生成状态失败，重试中', err)
+    scheduleNextStatusPoll(4000)
+  }
+}
+
+const tryResumeByStatus = () => {
+  if (shouldStartStatusPolling()) {
+    pollGenerationStatus()
+  }
+}
 
 // 预览相关
 const previewUrl = ref('')
@@ -399,6 +613,8 @@ const fetchAppInfo = async () => {
       if (messages.value.length >= 2) {
         updatePreview()
       }
+      // 刷新恢复：如果只剩用户最新一条且没有 AI 回复，启动状态轮询
+      tryResumeByStatus()
       // 检查是否需要自动发送初始提示词
       // 只有在是自己的应用且没有对话历史时才自动发送
       if (
@@ -654,6 +870,26 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   }
 }
 
+// 主动停止生成
+const stopGeneration = async () => {
+  if (!appId.value || !isGenerating.value) return
+  try {
+    const res = await request.post('/app/gen/cancel', null, { params: { appId: appId.value } })
+    if (res.data.code === 0) {
+      message.info('已请求停止生成')
+      generationStatus.value = { stage: '已取消', progress: 100, isActive: false }
+      isGenerating.value = false
+      // 添加一条系统提示
+  // 使用 error 状态表示已停止，避免修改类型定义
+  messages.value.push({ type: 'ai', content: '⏹️ 本次生成已由用户手动取消。', loading: false, status: 'error' })
+    } else {
+      message.error(res.data.message || '取消失败')
+    }
+  } catch (e) {
+    message.error('取消生成请求失败')
+  }
+}
+
 // 错误处理函数
 const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
@@ -849,6 +1085,7 @@ onMounted(() => {
 // 清理资源
 onUnmounted(() => {
   // EventSource 会在组件卸载时自动清理
+  stopStatusPolling()
 })
 </script>
 

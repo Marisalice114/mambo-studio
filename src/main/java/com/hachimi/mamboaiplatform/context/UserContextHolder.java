@@ -8,17 +8,17 @@ import com.hachimi.mamboaiplatform.model.entity.User;
  */
 public class UserContextHolder {
 
-    private static final InheritableThreadLocal<User> CTX = new InheritableThreadLocal<>();
+  private static final InheritableThreadLocal<User> CTX = new InheritableThreadLocal<>();
 
-    public static void set(User user) {
-        CTX.set(user);
-    }
+  public static void set(User user) {
+    CTX.set(user);
+  }
 
-    public static User get() {
-        return CTX.get();
-    }
+  public static User get() {
+    return CTX.get();
+  }
 
-    public static void clear() {
-        CTX.remove();
-    }
+  public static void clear() {
+    CTX.remove();
+  }
 }

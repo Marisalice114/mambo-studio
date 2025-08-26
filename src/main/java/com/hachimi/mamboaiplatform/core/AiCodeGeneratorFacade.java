@@ -1,6 +1,7 @@
 package com.hachimi.mamboaiplatform.core;
 
 import cn.hutool.json.JSONUtil;
+import cn.hutool.json.JSONObject;
 import com.hachimi.mamboaiplatform.ai.AiCodeGeneratorService;
 import com.hachimi.mamboaiplatform.ai.AiCodeGeneratorServiceFactory;
 import com.hachimi.mamboaiplatform.ai.model.HtmlCodeResult;
@@ -8,14 +9,20 @@ import com.hachimi.mamboaiplatform.ai.model.MultiFileCodeResult;
 import com.hachimi.mamboaiplatform.ai.model.message.AiResponseMessage;
 import com.hachimi.mamboaiplatform.ai.model.message.ToolExecutedMessage;
 import com.hachimi.mamboaiplatform.ai.model.message.ToolRequestMessage;
+import com.hachimi.mamboaiplatform.ai.tools.BaseTool;
+import com.hachimi.mamboaiplatform.ai.tools.ToolManager;
 import com.hachimi.mamboaiplatform.core.builder.VueProjectBuilder;
 import com.hachimi.mamboaiplatform.core.parser.CodeParserExecutor;
 import com.hachimi.mamboaiplatform.core.saver.CodeFileSaverExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
+import com.hachimi.mamboaiplatform.model.enums.ChatHistoryMessageTypeEnum;
 import com.hachimi.mamboaiplatform.monitor.MonitorContext;
 import com.hachimi.mamboaiplatform.monitor.MonitorContextHolder;
+import com.hachimi.mamboaiplatform.service.GenerationStatusService;
+import com.hachimi.mamboaiplatform.service.ChatHistoryService;
+
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
@@ -26,6 +33,9 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.hachimi.mamboaiplatform.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 
@@ -38,6 +48,15 @@ public class AiCodeGeneratorFacade {
 
   @Resource
   private VueProjectBuilder vueProjectBuilder;
+
+  @Resource
+  private GenerationStatusService generationStatusService;
+
+  @Resource
+  private ChatHistoryService chatHistoryService;
+
+  @Resource
+  private ToolManager toolManager;
 
   /**
    * 统一入口：根据类型生成并保存代码
@@ -118,7 +137,7 @@ public class AiCodeGeneratorFacade {
     MonitorContext existingContext = MonitorContextHolder.getContext();
     if (existingContext == null) {
       log.info("MonitorContext not found, creating default context for appId: {} on thread: {}",
-              appId, Thread.currentThread().getName());
+          appId, Thread.currentThread().getName());
       MonitorContext defaultContext = MonitorContext.builder()
           .userId("system") // 如果没有用户上下文，使用系统标识
           .appId(appId.toString())
@@ -129,13 +148,13 @@ public class AiCodeGeneratorFacade {
       MonitorContext verifyContext = MonitorContextHolder.getContext();
       if (verifyContext != null) {
         log.info("MonitorContext successfully set: userId={}, appId={}",
-                verifyContext.getUserId(), verifyContext.getAppId());
+            verifyContext.getUserId(), verifyContext.getAppId());
       } else {
         log.error("Failed to set MonitorContext, still null after setting");
       }
     } else {
       log.debug("MonitorContext already exists: userId={}, appId={} on thread: {}",
-              existingContext.getUserId(), existingContext.getAppId(), Thread.currentThread().getName());
+          existingContext.getUserId(), existingContext.getAppId(), Thread.currentThread().getName());
     }
   }
 
@@ -162,81 +181,198 @@ public class AiCodeGeneratorFacade {
     final MonitorContext contextForCallbacks = currentContext;
 
     return Flux.create(sink -> {
-      // 工具调用计数器，用于监控（不设限制）
       final AtomicInteger toolCallCount = new AtomicInteger(0);
-        // 预先捕获当前用户上下文（可能为 null）
-        com.hachimi.mamboaiplatform.model.entity.User contextUser = com.hachimi.mamboaiplatform.context.UserContextHolder.get();
-        // 工具调用计数器，用于监控（不设限制）
-      tokenStream.onPartialResponse((String partialResponse) -> {
-        // 在每个回调中恢复监控上下文
-        MonitorContextHolder.setContext(contextForCallbacks);
+      final AtomicBoolean cancelNotified = new AtomicBoolean(false);
+      // 预先捕获当前用户上下文（可能为 null）
+      com.hachimi.mamboaiplatform.model.entity.User contextUser = com.hachimi.mamboaiplatform.context.UserContextHolder
+          .get();
+      // 累积局部工具参数（流式分片 JSON 拼接用） key=index
+      Map<String, StringBuilder> partialToolArgs = new ConcurrentHashMap<>();
+      // 累积完整的 AI 回复内容，用于保存到数据库（包括工具调用过程）
+      final StringBuilder completeAiResponse = new StringBuilder();
 
-        AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+      // 封装一个统一的取消检测
+      Runnable cancelCheck = () -> {
+        if (GenerationSessionRegistry.isCancelled(appId) && cancelNotified.compareAndSet(false, true)) {
+          // 恢复上下文
+          MonitorContextHolder.setContext(contextForCallbacks);
           if (contextUser != null) {
             com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
           }
-        sink.next(JSONUtil.toJsonStr(aiResponseMessage));
-        log.debug("AI 部分响应: {}",
-            partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
-      })
-          .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
-            // 在每个回调中恢复监控上下文
+          log.info("用户取消生成，appId={}", appId);
+          try {
+            generationStatusService.markStopped(appId, contextForCallbacks.getAppId(), "user_stopped");
+          } catch (Exception ignore) {
+          }
+          AiResponseMessage cancelMsg = new AiResponseMessage("\n\n⏹️ 用户已取消，本次生成已停止。\n");
+          sink.next(JSONUtil.toJsonStr(cancelMsg));
+          sink.complete();
+        }
+      };
+
+      tokenStream
+          .onPartialResponse((String partialResponse) -> {
+            cancelCheck.run();
+            if (cancelNotified.get())
+              return; // 取消后不再发送
             MonitorContextHolder.setContext(contextForCallbacks);
-
-              if (contextUser != null) {
-                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            if (contextUser != null) {
+              com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            }
+            // 累积 AI 响应内容到完整回复中
+            completeAiResponse.append(partialResponse);
+            AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+            sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+            log.debug("AI 部分响应: {}",
+                partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
+          })
+          .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+            cancelCheck.run();
+            if (cancelNotified.get())
+              return;
+            MonitorContextHolder.setContext(contextForCallbacks);
+            if (contextUser != null) {
+              com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            }
+            String fragment = toolExecutionRequest.arguments();
+            if (fragment != null) {
+              String key = index + "|" + toolExecutionRequest.name();
+              partialToolArgs.computeIfAbsent(key, k -> new StringBuilder()).append(fragment);
+              // 仅做轻量日志，避免误判流式分片非 JSON
+              if (fragment.length() > 0) {
+                log.debug("工具[{}] 分片参数追加 index={} fragmentLen={} head='{}'", toolExecutionRequest.name(), index,
+                    fragment.length(), fragment.substring(0, Math.min(30, fragment.length())).replaceAll("\n", "\\n"));
               }
-            log.debug("工具调用: {} (参数长度: {})", toolExecutionRequest.name(),
-                toolExecutionRequest.arguments().length());
-
+            }
             ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
             sink.next(JSONUtil.toJsonStr(toolRequestMessage));
           })
           .onToolExecuted((ToolExecution toolExecution) -> {
-            // 在每个回调中恢复监控上下文
+            cancelCheck.run();
+            if (cancelNotified.get())
+              return;
             MonitorContextHolder.setContext(contextForCallbacks);
-
-              if (contextUser != null) {
-                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
-              }
+            if (contextUser != null) {
+              com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            }
             int currentCount = toolCallCount.incrementAndGet();
-            log.info("工具执行完成 #{}: {} -> {}", currentCount, toolExecution.request().name(),
-                toolExecution.result().length() > 100 ? toolExecution.result().substring(0, 100) + "..."
-                    : toolExecution.result());
+            // 尝试获取累积的完整参数（如有）
+            String accumulatedArgs = null;
+            try {
+              String key = toolExecution.request().name();
+              StringBuilder sb = partialToolArgs.get(key);
+              if (sb != null)
+                accumulatedArgs = sb.toString();
+            } catch (Exception ignore) {
+            }
+            if (accumulatedArgs != null) {
+              log.info("工具执行完成 #{}: {} (accArgsLen={}) -> {}", currentCount, toolExecution.request().name(),
+                  accumulatedArgs.length(),
+                  toolExecution.result().length() > 100 ? toolExecution.result().substring(0, 100) + "..."
+                      : toolExecution.result());
+            } else {
+              log.info("工具执行完成 #{}: {} -> {}", currentCount, toolExecution.request().name(),
+                  toolExecution.result().length() > 100 ? toolExecution.result().substring(0, 100) + "..."
+                      : toolExecution.result());
+            }
+            // 使用与JsonMessageStreamHandler相同的工具信息格式化逻辑
+            String toolName = toolExecution.request().name();
+            String toolArgs = toolExecution.request().arguments();
+            
+            try {
+              JSONObject jsonObject = JSONUtil.parseObj(toolArgs);
+              BaseTool tool = toolManager.getTool(toolName);
+              if (tool != null) {
+                String result = tool.generateToolExecutedResult(jsonObject);
+                String output = String.format("\n\n%s\n\n", result);
+                completeAiResponse.append(output);
+              }
+            } catch (Exception e) {
+              log.debug("工具执行信息格式化失败: {}", e.getMessage());
+              // 降级处理：使用简单格式
+              completeAiResponse.append("\n\n[工具调用] ").append(toolName).append("\n\n");
+            }
+            
             ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
             sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
           })
           .onCompleteResponse((ChatResponse response) -> {
-            // 在每个回调中恢复监控上下文
-            MonitorContextHolder.setContext(contextForCallbacks);
-
-              if (contextUser != null) {
-                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            // 如果已经取消，直接忽略完成回调（取消逻辑里已 complete）
+            if (cancelNotified.get() || GenerationSessionRegistry.isCancelled(appId)) {
+              if (cancelNotified.compareAndSet(false, true)) {
+                // 还未来得及触发取消消息（极端时序），补发一次
+                MonitorContextHolder.setContext(contextForCallbacks);
+                if (contextUser != null) {
+                  com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+                }
+                try {
+                  generationStatusService.markStopped(appId, contextForCallbacks.getAppId(), "user_stopped");
+                } catch (Exception ignore) {
+                }
+                AiResponseMessage cancelMsg = new AiResponseMessage("\n\n⏹️ 用户已取消，本次生成已停止。\n");
+                sink.next(JSONUtil.toJsonStr(cancelMsg));
+                sink.complete();
               }
+              return;
+            }
+            MonitorContextHolder.setContext(contextForCallbacks);
+            if (contextUser != null) {
+              com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            }
             log.info("AI 响应完成，总工具调用次数: {}", toolCallCount.get());
-            // 同步执行vue项目，确保预览时项目已经就绪
+            
+            // 直接保存完整的AI回复到数据库，不依赖前端流完成状态
+            try {
+              if (completeAiResponse.length() > 0) {
+                String completeContent = completeAiResponse.toString();
+                Long userId = contextUser != null ? contextUser.getId() : null;
+                log.info("保存完整AI回复到数据库，长度: {}, userId: {}", completeContent.length(), userId);
+                chatHistoryService.addChatMessage(appId, completeContent, ChatHistoryMessageTypeEnum.AI.getValue(), userId);
+              }
+            } catch (Exception e) {
+              log.error("保存AI回复到数据库失败: {}", e.getMessage(), e);
+            }
+            
             String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
             boolean buildSuccess = vueProjectBuilder.buildVueProject(pathName);
-            // 将构建结果也写入到流中，便于前端明确知道是否构建成功
             String buildMsg;
             if (buildSuccess) {
               buildMsg = "\n\n✅ Vue 项目构建成功，可以预览。\n";
+              try {
+                generationStatusService.markBuilt(appId, contextForCallbacks.getAppId(), "success");
+              } catch (Exception ignore) {
+              }
             } else {
               buildMsg = "\n\n❌ Vue 项目构建失败，请检查 package.json / 依赖或构建日志。\n";
               log.warn("Vue 项目构建失败（已通知前端），路径: {}", pathName);
+              try {
+                generationStatusService.markFailed(appId, contextForCallbacks.getAppId(), "build failed");
+              } catch (Exception ignore) {
+              }
             }
             AiResponseMessage buildResultMessage = new AiResponseMessage(buildMsg);
             sink.next(JSONUtil.toJsonStr(buildResultMessage));
             sink.complete();
           })
           .onError((Throwable error) -> {
-            // 在错误回调中也恢复监控上下文
+            if (cancelNotified.get() || GenerationSessionRegistry.isCancelled(appId)) {
+              // 取消后若底层仍抛错，忽略（已向前端发过取消消息）
+              return;
+            }
             MonitorContextHolder.setContext(contextForCallbacks);
-
-              if (contextUser != null) {
-                com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
-              }
-            log.error("TokenStream 处理错误，工具调用次数: {}", toolCallCount.get(), error);
+            if (contextUser != null) {
+              com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
+            }
+            String errMsg = error.getMessage();
+            if (errMsg != null && errMsg.contains("function.arguments") && errMsg.contains("invalid_parameter_error")) {
+              log.error("TokenStream 处理错误 (函数参数格式问题)，工具调用次数: {} detail={}", toolCallCount.get(), errMsg);
+            } else {
+              log.error("TokenStream 处理错误，工具调用次数: {}", toolCallCount.get(), error);
+            }
+            try {
+              generationStatusService.markFailed(appId, contextForCallbacks.getAppId(), error.getMessage());
+            } catch (Exception ignore) {
+            }
             sink.error(error);
           })
           .start();
@@ -270,5 +406,4 @@ public class AiCodeGeneratorFacade {
       }
     });
   }
-
 }
