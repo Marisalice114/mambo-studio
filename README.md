@@ -17,7 +17,7 @@
 
 ## ✨ 项目简介
 
-MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企业级 AI 代码生成平台。通过自然语言描述，AI 可以自动生成完整的 Web 应用，支持多种项目[...]
+MamboStudio 是一个基于 **Spring Boot 3 + LangChain4j + Vue 3** 构建的企业级 AI 代码生成平台。通过自然语言描述，AI 可以自动生成完整的 Web 应用，支持多种项目[HTML,VUE...]
 
 ### 🎯 核心亮点
 
