@@ -1,6 +1,12 @@
 declare namespace API {
+  type adminDeleteUserParams = {
+    id: number
+  }
+
   type AppAddRequest = {
     initPrompt?: string
+    codeGenType?: string
+    isVipOnly?: boolean
   }
 
   type AppAdminUpdateRequest = {
@@ -27,11 +33,14 @@ declare namespace API {
     deployKey?: string
     priority?: number
     userId?: number
+    isVipOnly?: boolean
   }
 
   type AppUpdateRequest = {
     id?: number
     appName?: string
+    priority?: number
+    isVipOnly?: boolean
   }
 
   type AppVO = {
@@ -44,9 +53,10 @@ declare namespace API {
     deployedTime?: string
     priority?: number
     userId?: number
+    isVipOnly?: boolean
     createTime?: string
     updateTime?: string
-    user?: UserVO
+    user?: UserPublicVO
   }
 
   type BaseResponseAppVO = {
@@ -58,6 +68,12 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseListUserAdminVO = {
+    code?: number
+    data?: UserAdminVO[]
     message?: string
   }
 
@@ -73,6 +89,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseObject = {
+    code?: number
+    data?: Record<string, any>
+    message?: string
+  }
+
   type BaseResponsePageAppVO = {
     code?: number
     data?: PageAppVO
@@ -85,9 +107,15 @@ declare namespace API {
     message?: string
   }
 
-  type BaseResponsePageUserVO = {
+  type BaseResponsePageUserAdminVO = {
     code?: number
-    data?: PageUserVO
+    data?: PageUserAdminVO
+    message?: string
+  }
+
+  type BaseResponsePageUserPublicVO = {
+    code?: number
+    data?: PageUserPublicVO
     message?: string
   }
 
@@ -103,10 +131,20 @@ declare namespace API {
     message?: string
   }
 
-  type BaseResponseUserVO = {
+  type BaseResponseUserDetailVO = {
     code?: number
-    data?: UserVO
+    data?: UserDetailVO
     message?: string
+  }
+
+  type BaseResponseUserPublicVO = {
+    code?: number
+    data?: UserPublicVO
+    message?: string
+  }
+
+  type cancelGenParams = {
+    appId: number
   }
 
   type ChatHistory = {
@@ -142,8 +180,25 @@ declare namespace API {
     id?: number
   }
 
+  type DiagramTask = {
+    mermaidCode?: string
+    description?: string
+  }
+
   type downloadAppCodeParams = {
     appId: number
+  }
+
+  type executeWorkflowParams = {
+    prompt: string
+  }
+
+  type executeWorkflowWithFluxParams = {
+    prompt: string
+  }
+
+  type executeWorkflowWithSseParams = {
+    prompt: string
   }
 
   type getAppVOByIdByAdminParams = {
@@ -154,12 +209,41 @@ declare namespace API {
     id: number
   }
 
+  type getGenStatusParams = {
+    appId: number
+  }
+
+  type getInfoParams = {
+    id: number
+  }
+
   type getUserByIdParams = {
     id: number
   }
 
   type getUserVOByIdParams = {
     id: number
+  }
+
+  type IllustrationTask = {
+    query?: string
+  }
+
+  type ImageCollectionPlan = {
+    contentImageTasks?: ImageSearchTask[]
+    illustrationTasks?: IllustrationTask[]
+    diagramTasks?: DiagramTask[]
+    logoTasks?: LogoTask[]
+  }
+
+  type ImageResource = {
+    category?: 'CONTENT' | 'LOGO' | 'ILLUSTRATION' | 'ARCHITECTURE'
+    description?: string
+    url?: string
+  }
+
+  type ImageSearchTask = {
+    query?: string
   }
 
   type listAppChatHistoryParams = {
@@ -173,12 +257,17 @@ declare namespace API {
     userAccount?: string
     userName?: string
     userAvatar?: string
-    userProfile?: string
     userRole?: string
     createTime?: string
     updateTime?: string
     isVip?: boolean
     vipExpireTime?: string
+    shareCode?: string
+    loginTime?: string
+  }
+
+  type LogoTask = {
+    description?: string
   }
 
   type PageAppVO = {
@@ -199,8 +288,12 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
-  type PageUserVO = {
-    records?: UserVO[]
+  type pageParams = {
+    page: PageUser
+  }
+
+  type PageUser = {
+    records?: User[]
     pageNumber?: number
     pageSize?: number
     totalPage?: number
@@ -208,10 +301,38 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
+  type PageUserAdminVO = {
+    records?: UserAdminVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
+  type PageUserPublicVO = {
+    records?: UserPublicVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
+  type QualityResult = {
+    isValid?: boolean
+    errors?: string[]
+    suggestions?: string[]
+  }
+
   type ServerSentEventString = true
 
   type serveStaticResourceParams = {
     deployKey: string
+  }
+
+  type SseEmitter = {
+    timeout?: number
   }
 
   type User = {
@@ -226,6 +347,11 @@ declare namespace API {
     createTime?: string
     updateTime?: string
     isDelete?: number
+    vipExpireTime?: string
+    vipNumber?: number
+    shareCode?: string
+    inviteUser?: number
+    isVip?: boolean
   }
 
   type UserAddRequest = {
@@ -236,9 +362,49 @@ declare namespace API {
     userRole?: string
   }
 
+  type UserAdminVO = {
+    id?: number
+    userAccount?: string
+    userName?: string
+    userAvatar?: string
+    userRole?: string
+    createTime?: string
+    updateTime?: string
+    editTime?: string
+    vipExpireTime?: string
+    vipNumber?: number
+    inviteUser?: number
+    isVip?: boolean
+  }
+
+  type UserDetailVO = {
+    id?: number
+    userAccount?: string
+    userName?: string
+    userAvatar?: string
+    userProfile?: string
+    userRole?: string
+    createTime?: string
+    updateTime?: string
+    vipExpireTime?: string
+    vipNumber?: number
+    shareCode?: string
+    hasInviter?: boolean
+    isVip?: boolean
+  }
+
   type UserLoginRequest = {
     userAccount?: string
     userPassword?: string
+  }
+
+  type UserPublicVO = {
+    id?: number
+    userName?: string
+    userAvatar?: string
+    userProfile?: string
+    isVip?: boolean
+    createTime?: string
   }
 
   type UserQueryRequest = {
@@ -247,10 +413,11 @@ declare namespace API {
     sortField?: string
     sortOrder?: string
     id?: number
-    userName?: string
     userAccount?: string
+    userName?: string
     userProfile?: string
     userRole?: string
+    isVip?: boolean
   }
 
   type UserRegisterRequest = {
@@ -265,17 +432,26 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    vipExpireTime?: string
+    vipNumber?: number
+    inviteUser?: number
   }
 
-  type UserVO = {
-    id?: number
-    userAccount?: string
-    userName?: string
-    userAvatar?: string
-    userProfile?: string
-    userRole?: string
-    createTime?: string
-    isVip?: boolean
-    vipExpireTime?: string
+  type WorkflowContext = {
+    currentStep?: string
+    originalPrompt?: string
+    imageListStr?: string
+    imageList?: ImageResource[]
+    enhancedPrompt?: string
+    generationType?: 'HTML' | 'MULTI_FILE' | 'VUE_PROJECT'
+    generatedCodeDir?: string
+    buildResultDir?: string
+    qualityResult?: QualityResult
+    errorMessage?: string
+    imageCollectionPlan?: ImageCollectionPlan
+    contentImages?: ImageResource[]
+    illustrations?: ImageResource[]
+    diagrams?: ImageResource[]
+    logos?: ImageResource[]
   }
 }

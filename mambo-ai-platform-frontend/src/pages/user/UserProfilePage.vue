@@ -26,7 +26,7 @@
           </a-avatar>
         </a-descriptions-item>
         <a-descriptions-item label="个人简介" :span="2">
-          {{ loginUserStore.loginUser.userProfile || '暂无个人简介' }}
+          {{ getUserProfile() || '暂无个人简介' }}
         </a-descriptions-item>
       </a-descriptions>
       
@@ -77,6 +77,10 @@ const roleText = computed(() => {
 })
 
 // 方法
+const getUserProfile = () => {
+  return (loginUserStore.loginUser as any)?.userProfile || ''
+}
+
 const goToSettings = () => {
   router.push('/user/settings')
 }

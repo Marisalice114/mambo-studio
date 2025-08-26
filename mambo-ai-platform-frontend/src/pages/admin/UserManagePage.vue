@@ -132,7 +132,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref, h } from 'vue'
-import { deleteUser, listUserVoByPage } from '@/api/userController'
+import { adminDeleteUser, listUserVoByPage } from '@/api/userController'
 import { message } from 'ant-design-vue'
 import { SearchOutlined, CrownOutlined, UserOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -242,7 +242,7 @@ const columns = [
 ]
 
 // 展示的数据
-const data = ref<API.UserVO[]>([])
+const data = ref<API.User[]>([])
 const total = ref(0)
 const loading = ref(false)
 
@@ -355,7 +355,7 @@ const doDelete = async (id: number) => {
   if (!id) {
     return
   }
-  const res = await deleteUser({ id })
+  const res = await adminDeleteUser({ id })
   if (res.data.code === 0) {
     message.success('删除成功')
     // 刷新数据

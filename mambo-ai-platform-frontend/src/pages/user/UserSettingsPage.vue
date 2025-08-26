@@ -93,7 +93,7 @@ const initFormData = () => {
   const user = loginUserStore.loginUser
   formData.userName = user.userName || ''
   formData.userAvatar = user.userAvatar || ''
-  formData.userProfile = user.userProfile || ''
+  formData.userProfile = (user as any)?.userProfile || ''
 }
 
 // 提交表单
