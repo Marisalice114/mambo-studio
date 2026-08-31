@@ -1,66 +1,151 @@
-# Mambo AI Code Generation Platform - AI Agent Instructions
+                   # Mambo AI Code Generation Platform - AI Agent Instructions
 
-This is a **learning-oriented enterprise-grade AI code generation platform** built with **Spring Boot 3 + LangChain4j + Vue 3**. The project combines **practical learning experience** with **production-ready architecture patterns**, emphasizing **backend-driven development** where the core AI logic, workflows, and business features are implemented in Java, while the frontend serves as an adaptable interface that should be modified to match backend capabilities and requirements.
+**MamboStudio** is an enterprise-grade AI code generation platform built with **Spring Boot 3 + LangChain4j + Vue 3**. This is a **backend-driven architecture** where AI logic, workflows, and business features are implemented in Java, with the frontend serving as an adaptive interface layer.
 
 ## 🏗️ Architecture Overview
 
-### Backend Architecture (Spring Boot 3 + Java 21) - **PRIMARY FOCUS**
+### Backend (Spring Boot 3 + Java 21) - **PRIMARY FOCUS**
 
-- **AI Service Layer**: LangChain4j-powered code generation with multiple strategies (HTML, Multi-file, Vue projects)
-- **Workflow Engine**: LangGraph4j for complex AI workflows with node-based processing
-- **Data Layer**: MyBatis-Flex for database operations, Redis for caching/sessions
-- **External Services**: Aliyun OSS for file storage, Selenium for screenshots
-- **Enterprise Features**: Rate limiting (Redisson), session management, caching strategies, error handling
-- **Custom Business Logic**: Extended backend features requiring frontend adaptation
+**Core Technologies:**
 
-### Frontend Architecture (Vue 3 + TypeScript) - **ADAPTATION LAYER**
+- **AI Framework**: LangChain4j with multi-model support (ModelScope API for local dev, production models for deployment)
+- **Workflow Engine**: LangGraph4j for stateful AI workflows with node-based processing
+- **Data Persistence**: MyBatis-Flex (code generation via `MyBatisCodeGenerator.main()`)
+- **Caching/Sessions**: Redis (dual-purpose: sessions + LangChain4j chat memory + Redisson rate limiting)
+- **File Storage**: Aliyun OSS for generated code and assets, local filesystem at `tmp/code_output/`
+- **Monitoring**: Prometheus + Grafana for AI model metrics and business KPIs
 
-- **Base Framework**: Vue 3 + Ant Design Vue foundation requiring extensive customization
-- **Real-time Communication**: EventSource/SSE for streaming AI responses
-- **API Integration**: Auto-generated clients from OpenAPI (`npm run openapi2ts`)
-- **State Management**: Pinia stores for user session and application state
-- **Development Workflow**: Vite dev server with hot reload, TypeScript compilation
-- **Production Readiness**: Component optimization, responsive design, error boundaries
+**Key Design Patterns:**
 
-## 🔧 Key Development Patterns
+- **Factory Pattern**: `AiCodeGeneratorServiceFactory` with Caffeine caching (30min TTL, per-app isolation)
+- **Facade Pattern**: `AiCodeGeneratorFacade` as unified entry point for code generation
+- **Tool System**: `ToolManager` auto-registers Spring beans extending `BaseTool` for LangChain4j function calling
+- **Prototype Scope**: AI model beans use prototype scope to prevent concurrency issues
 
-### LangChain4j Service Factory Pattern
+### Frontend (Vue 3 + TypeScript) - **ADAPTATION LAYER**
 
-The platform uses a sophisticated factory pattern for AI services with Caffeine caching:
+**Core Technologies:**
+
+- **Framework**: Vue 3 + Vite + TypeScript with Ant Design Vue (requires heavy customization)
+- **API Client**: Auto-generated from OpenAPI spec via `npm run openapi2ts`
+- **Real-time**: EventSource/SSE for streaming AI responses in `AppChatPage.vue`
+- **State Management**: Pinia stores for user sessions and application state
+- **Visual Editing**: Custom `VisualEditor` class for iframe-based interactive element selection
+
+**Visual Editing System (Unique Feature):**
+
+- **Cross-frame Communication**: PostMessage API bridges parent window and iframe preview
+- **Dynamic Script Injection**: Runtime injection of editing scripts into generated HTML
+- **Element Detection**: CSS hover/click handlers with intelligent selector generation
+- **AI Integration**: Selected elements feed context to LangChain4j tools for precise modifications
+
+## 🔧 Critical Development Patterns
+
+### 1. LangChain4j Service Factory Pattern
+
+Each app gets isolated AI services with independent chat memory:
 
 ```java
-// Multiple AI services per app/generation type with isolated chat memory
+// Factory creates cached instances per {appId}_{codeGenType}
 AiCodeGeneratorService service = aiCodeGeneratorServiceFactory
-    .getAiCodeGeneratorService(appId, codeGenType);
+    .getAiCodeGeneratorService(appId, CodeGenTypeEnum.VUE_PROJECT);
 ```
 
-- Each app gets isolated `MessageWindowChatMemory` with Redis persistence
-- Different generation types (HTML/MULTI_FILE/VUE_PROJECT) use different models
-- Factory manages caching with keys: `{appId}_{codeGenType}` (30min TTL)
-- **Prototype scope** for AI model beans to solve concurrency issues
+**Key Implementation Details:**
 
-### LangGraph4j Workflow Architecture
+- **Caffeine Cache**: 30min write expiration, 10min access expiration, max 1000 instances
+- **Redis Chat Memory**: `MessageWindowChatMemory` backed by `RedisChatMemoryStore` (100 message window)
+- **Chat History Loading**: `chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 50)` preloads context
+- **Prototype Scope**: AI model beans **must** use `@Scope("prototype")` to avoid threading conflicts
+- **Model Selection**: Different generation types use different models (reasoning/streaming/routing)
 
-Complex AI workflows use node-based processing with state serialization:
+### 2. LangGraph4j Workflow Architecture
+
+Stateful workflows with serializable context passing between nodes:
 
 ```java
-// WorkflowContext flows through MessagesState between nodes
+// WorkflowContext serializes into MessagesState for node communication
 WorkflowContext context = WorkflowContext.getContext(state);
-// Nodes: ImageCollector -> PromptEnhancer -> Router -> CodeGenerator -> ProjectBuilder
+context.setEnhancedPrompt("improved prompt...");
+return WorkflowContext.saveContext(context);
 ```
 
-- State management via `WorkflowContext` serialized in `MessagesState`
-- Conditional edges for quality checks and retries (`edge_async()`)
-- Subgraph support for parallel processing (image collection with 4 concurrent subgraphs)
-- SSE streaming support for real-time workflow progress updates
+**Workflow Capabilities:**
 
-### Configuration Management
+- **Nodes**: ImageCollector → PromptEnhancer → Router → CodeGenerator → QualityCheck → ProjectBuilder
+- **Conditional Edges**: `edge_async()` for quality checks and retry logic with `routeAfterQualityCheck()`
+- **Subgraphs**: Parallel image collection (4 concurrent subgraphs for content/illustrations/diagrams/logos)
+- **SSE Streaming**: `Flux<String>` support for real-time workflow progress updates
+- **Graph Visualization**: `workflow.getGraph(GraphRepresentation.Type.MERMAID)` for debugging
 
-- **Multi-profile setup**: `application.yml` + `application-local.yml` (ModelScope API for development)
-- **LangChain4j config**: Separate beans for different model types (reasoning, streaming, routing)
-- **Redis dual-purpose**: Session storage + LangChain4j chat memory + Redisson rate limiting
-- **Prototype beans**: Critical for AI models to avoid concurrency issues
-- **MyBatis-Flex**: Code generation via `MyBatisCodeGenerator.main()` in test package
+### 3. LangChain4j Tool System
+
+Auto-registered tools for AI function calling via Spring's component scanning:
+
+```java
+@Component
+public class FileWriteTool extends BaseTool {
+    @Tool("写入文件到指定路径")
+    public String writeFile(
+        @P("文件的相对路径") String relativeFilePath,
+        @P("要写入文件的内容") String content,
+        @ToolMemoryId Long appId
+    ) {
+        // Resolves relative paths to vue_project_{appId}/ directory
+        // Returns relative path to prevent exposing absolute paths to AI
+    }
+}
+```
+
+**Available Tools:**
+
+- **File Operations**: `FileWriteTool`, `FileReadTool`, `FileModifyTool`, `FileDeleteTool`, `FileDirReadTool`
+- **Image Generation**: `LogoGeneratorTool` (DashScope API), `UndrawIllustrationTool` (free SVG library)
+- **Diagram Generation**: `MermaidDiagramTool` (converts Mermaid syntax to images via CLI)
+- **Tool Registration**: `ToolManager` uses `@Resource private BaseTool[] tools` to auto-inject all tool beans
+
+### 4. Visual Editor Cross-Frame Communication
+
+Frontend-only feature enabling interactive element selection in generated code:
+
+```typescript
+// VisualEditor injects script into iframe for click-to-select functionality
+visualEditor.init(iframe)
+visualEditor.toggleEditMode() // Injects hover/click handlers
+
+// PostMessage API bridges iframe and parent window
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'ELEMENT_SELECTED') {
+    // Pass element info (selector, tagName, textContent) to AI
+  }
+})
+```
+
+**Implementation Details:**
+
+- **Dynamic Injection**: `generateEditScript()` creates self-contained script with CSS and event handlers
+- **Element Selection**: Generates unique CSS selectors (ID > classes > nth-child)
+- **Visual Feedback**: `.edit-hover` (blue dashed outline) and `.edit-selected` (green solid outline)
+- **Context Enrichment**: Selected element info appends to user message for precise AI modifications
+
+### 5. Monitoring Context (ThreadLocal Issue & Solution)
+
+**Critical Issue**: `MonitorContextHolder` uses ThreadLocal, causing NullPointerException in async operations.
+
+**Solution**:
+
+```java
+// Set context before AI service calls
+MonitorContextHolder.setContext(MonitorContext.builder()
+    .userId(userId).appId(appId).build());
+
+// For async operations, use attributes instead of ThreadLocal
+Map<String, Object> attributes = new HashMap<>();
+attributes.put(MONITOR_CONTEXT_KEY, MonitorContext.builder()...build());
+
+// In listeners, retrieve from attributes
+MonitorContext context = (MonitorContext) attributes.get(MONITOR_CONTEXT_KEY);
+```
 
 ## 🛠️ Essential Development Commands
 
@@ -75,50 +160,101 @@ mvn spring-boot:run -Dspring.profiles.active=local
 
 # Test workflows (run in IDE)
 # Execute: WorkflowApp.main() for LangGraph4j workflow testing
+
+# Build project
+mvn clean package -DskipTests
 ```
 
 ### Frontend Development
 
 ```bash
 cd mambo-ai-platform-frontend
-npm run dev              # Development server (Vite)
-npm run openapi2ts       # Generate API clients from OpenAPI spec
-npm run build           # Production build
-npm run type-check      # TypeScript compilation check
+npm install                # Install dependencies
+npm run dev                # Development server (Vite) at http://localhost:5173
+npm run openapi2ts         # Generate API clients from OpenAPI spec
+npm run build              # Production build
+npm run type-check         # TypeScript compilation check
+```
+
+### Database & Redis Setup
+
+```bash
+# MySQL (required schema in sql/ directory)
+mysql -u root -p < src/main/resources/sql/create_table.sql
+
+# Redis (default port 6379, no password for local dev)
+redis-server
 ```
 
 ### Critical Integration Points
 
 - **SSE Endpoint**: `/app/chat/gen/code` returns `Flux<ServerSentEvent<String>>`
 - **EventSource Frontend**: Real-time streaming in `AppChatPage.vue`
-- **API Generation**: OpenAPI schema at `localhost:8234/api/v3/api-docs`
+- **API Documentation**: Swagger UI at `http://localhost:8234/api/doc.html`
+- **OpenAPI Spec**: JSON schema at `http://localhost:8234/api/v3/api-docs`
+- **Prometheus Metrics**: `http://localhost:8234/api/actuator/prometheus`
 
 ## 📁 Critical File Locations
 
 ### Backend Core Files
 
+**AI Service Layer:**
+
 - `AiCodeGeneratorServiceFactory.java` - Multi-instance AI service management with Caffeine caching
-- `CodeGenWorkflow.java` - Main LangGraph4j workflow implementation with SSE support
-- `WorkflowContext.java` - State management for workflows (serializable in MessagesState)
-- `resources/prompt/` - System prompts for different generation types
 - `AiCodeGeneratorFacade.java` - Unified entry point for code generation
-- `RedisChatMemoryStoreConfig.java` - Redis-backed LangChain4j chat memory configuration
+- `ai/tools/ToolManager.java` - Auto-registers all `BaseTool` beans via `@Resource private BaseTool[] tools`
+- `ai/tools/FileWriteTool.java`, `FileReadTool.java`, `FileModifyTool.java`, `FileDeleteTool.java`, `FileDirReadTool.java`
+
+**Workflow Layer:**
+
+- `langgraph4j/CodeGenWorkflow.java` - Main LangGraph4j workflow with SSE support
+- `langgraph4j/state/WorkflowContext.java` - State management (serializable in MessagesState)
+- `langgraph4j/node/` - Individual workflow nodes (ImageCollectorNode, PromptEnhancerNode, RouterNode, etc.)
+- `langgraph4j/tools/` - Image generation tools (LogoGeneratorTool, UndrawIllustrationTool, MermaidDiagramTool)
+
+**Configuration:**
+
+- `application.yml` - Base config (server, datasource, Redis, session)
+- `application-local.yml` - Development config with ModelScope API keys
+- `application-prod.yml` - Production config with live API endpoints
+- `RedisChatMemoryStoreConfig.java` - Redis-backed LangChain4j chat memory
+- `RoutingAiModelConfig.java` - Model routing for different AI tasks
+- `StreamingChatModelConfig.java` - Streaming model with prototype scope
+
+**Resource Files:**
+
+- `resources/prompt/` - System prompts for different generation types
+  - `codegen-html-system-prompt.txt`
+  - `codegen-multi-file-system-prompt.txt`
+  - `codegen-vue-system-prompt.txt`
+  - `codegen-routing-system-prompt.txt`
 
 ### Frontend Core Files
 
+**Pages & Components:**
+
 - `src/pages/app/AppChatPage.vue` - Real-time chat interface with EventSource SSE handling
+- `src/utils/visualEditor.ts` - VisualEditor class for iframe-based element selection
+- `src/pages/admin/` - Admin dashboard pages (UserAppsPage, UsersPage, ChatsPage)
+
+**API & State:**
+
 - `src/api/` - Auto-generated API clients (regenerate with `npm run openapi2ts`)
 - `src/stores/loginUser.ts` - User session management with Pinia
-- `openapi2ts.config.ts` - API client generation configuration
 - `src/request.ts` - Axios configuration with base URL and credentials
 
-### Configuration Files
+**Configuration:**
 
-- `application-local.yml` - Development config with ModelScope API keys
-- `application-prod.yml` - Production config with live API endpoints
-- `RedisChatMemoryStoreConfig.java` - Chat memory persistence setup
-- `RoutingAiModelConfig.java` - Model routing for different AI tasks
-- `StreamingChatModelConfig.java` - Streaming model configuration with prototype scope
+- `openapi2ts.config.ts` - API client generation configuration
+- `vite.config.ts` - Vite build and dev server configuration
+- `tsconfig.json` - TypeScript compiler options
+
+### Key Directories
+
+- `tmp/code_output/` - Generated code storage (HTML, multi-file, Vue projects)
+- `tmp/logos/` - Generated logo images
+- `src/test/java/` - Test classes including MyBatisCodeGenerator
+- `target/classes/` - Compiled classes and resources
 
 ## 🎯 Development Guidelines
 

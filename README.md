@@ -1,3 +1,14 @@
+---
+AIGC:
+  ContentProducer: '001191110102MAD55U9H0F10002'
+  ContentPropagator: '001191110102MAD55U9H0F10002'
+  Label: '1'
+  ProduceID: '15bad6b0-3353-4704-ba68-a49fbc64111c'
+  PropagateID: '15bad6b0-3353-4704-ba68-a49fbc64111c'
+  ReservedCode1: 'e4158fc7-1126-4848-aa27-6188eccd83d1'
+  ReservedCode2: 'e4158fc7-1126-4848-aa27-6188eccd83d1'
+---
+
 # 🎨 MamboStudio
 
 <div align="center">
@@ -298,8 +309,8 @@ mambo-ai-platform/
 
 ## 📞 联系我们
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/mambo-ai-platform/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/mambo-ai-platform/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Marisalice114/mambo-studio/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Marisalice114/mambo-studio/discussions)
 
 ---
 

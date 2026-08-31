@@ -278,7 +278,7 @@ public class AiCodeGeneratorFacade {
             // 使用与JsonMessageStreamHandler相同的工具信息格式化逻辑
             String toolName = toolExecution.request().name();
             String toolArgs = toolExecution.request().arguments();
-            
+
             try {
               JSONObject jsonObject = JSONUtil.parseObj(toolArgs);
               BaseTool tool = toolManager.getTool(toolName);
@@ -292,7 +292,7 @@ public class AiCodeGeneratorFacade {
               // 降级处理：使用简单格式
               completeAiResponse.append("\n\n[工具调用] ").append(toolName).append("\n\n");
             }
-            
+
             ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
             sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
           })
@@ -320,19 +320,20 @@ public class AiCodeGeneratorFacade {
               com.hachimi.mamboaiplatform.context.UserContextHolder.set(contextUser);
             }
             log.info("AI 响应完成，总工具调用次数: {}", toolCallCount.get());
-            
+
             // 直接保存完整的AI回复到数据库，不依赖前端流完成状态
             try {
               if (completeAiResponse.length() > 0) {
                 String completeContent = completeAiResponse.toString();
                 Long userId = contextUser != null ? contextUser.getId() : null;
                 log.info("保存完整AI回复到数据库，长度: {}, userId: {}", completeContent.length(), userId);
-                chatHistoryService.addChatMessage(appId, completeContent, ChatHistoryMessageTypeEnum.AI.getValue(), userId);
+                chatHistoryService.addChatMessage(appId, completeContent, ChatHistoryMessageTypeEnum.AI.getValue(),
+                    userId);
               }
             } catch (Exception e) {
               log.error("保存AI回复到数据库失败: {}", e.getMessage(), e);
             }
-            
+
             String pathName = CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
             boolean buildSuccess = vueProjectBuilder.buildVueProject(pathName);
             String buildMsg;
