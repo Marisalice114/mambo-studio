@@ -361,7 +361,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     } catch (Exception e) {
       log.error("删除应用关联的对话历史失败: {}", e.getMessage());
     }
-    // 3.删除应用
+    // 3.清理磁盘上的代码生成文件和部署文件
+    try {
+      App app = this.getById(appId);
+      if (app != null) {
+        // 清理代码生成目录：html_{appId} / multi_file_{appId} / vue_project_{appId}
+        String codeGenType = app.getCodeGenType();
+        if (StrUtil.isNotBlank(codeGenType)) {
+          String codeOutputDir = CODE_OUTPUT_ROOT_DIR + File.separator + codeGenType + "_" + appId;
+          FileUtil.del(codeOutputDir);
+        }
+        // 清理部署目录（以 deployKey 命名）
+        String deployKey = app.getDeployKey();
+        if (StrUtil.isNotBlank(deployKey)) {
+          String deployDir = CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
+          FileUtil.del(deployDir);
+        }
+      }
+    } catch (Exception e) {
+      log.error("清理应用磁盘文件失败 appId={}: {}", appId, e.getMessage());
+    }
+    // 4.删除应用
     return super.removeById(id);
   }
 

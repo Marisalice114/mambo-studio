@@ -138,7 +138,7 @@
                   :rows="4"
                   :maxlength="1000"
                   @keydown.enter.prevent="sendMessage"
-                  :disabled="isGenerating || !isOwner"
+                  :disabled="isGenerating"
               />
             </a-tooltip>
             <a-textarea
@@ -662,6 +662,10 @@ const sendInitialMessage = async (prompt: string) => {
 
 // 发送消息
 const sendMessage = async () => {
+  if (!isOwner.value) {
+    message.warning('无法在别人的作品下对话哦~')
+    return
+  }
   if (!userInput.value.trim() || isGenerating.value) {
     return
   }

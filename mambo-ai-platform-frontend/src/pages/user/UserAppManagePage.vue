@@ -214,36 +214,15 @@ const vueCount = computed(() => {
   return data.value.filter(app => app.codeGenType === 'VUE_PROJECT').length
 })
 
-// 排序相关
+// 排序相关（已改为后端排序，仅需保留类型用于状态展示）
 const currentSort = ref<{ field: string; order: 'asc' | 'desc' } | null>(null)
 
 const handleSort = (field: string, order: 'asc' | 'desc') => {
-  currentSort.value = { field, order }
-  
-  // 执行排序
-  data.value.sort((a: any, b: any) => {
-    let aValue = a[field]
-    let bValue = b[field]
-    
-    // 处理时间字段
-    if (field.includes('Time')) {
-      aValue = new Date(aValue || 0).getTime()
-      bValue = new Date(bValue || 0).getTime()
-    }
-    
-    // 处理数字字段
-    if (typeof aValue === 'string' && !isNaN(Number(aValue))) {
-      aValue = Number(aValue)
-      bValue = Number(bValue)
-    }
-    
-    if (order === 'asc') {
-      return aValue > bValue ? 1 : -1
-    } else {
-      return aValue < bValue ? 1 : -1
-    }
-  })
-  
+  // 将排序参数写入 searchParams，交由后端排序
+  searchParams.sortField = field
+  searchParams.sortOrder = order
+  searchParams.pageNum = 1
+  fetchData()
   message.success(`已按${field}${order === 'asc' ? '升序' : '降序'}排序`)
 }
 

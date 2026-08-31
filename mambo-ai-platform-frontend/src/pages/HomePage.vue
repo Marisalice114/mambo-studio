@@ -10,6 +10,10 @@ import AppCard from '@/components/AppCard.vue'
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
+// 加载状态
+const myAppsLoading = ref(true)
+const featuredAppsLoading = ref(true)
+
 // 用户提示词
 const userPrompt = ref('')
 const creating = ref(false)
@@ -97,6 +101,8 @@ const loadMyApps = async () => {
     }
   } catch (error) {
     console.error('加载我的应用失败：', error)
+  } finally {
+    myAppsLoading.value = false
   }
 }
 
@@ -116,6 +122,8 @@ const loadFeaturedApps = async () => {
     }
   } catch (error) {
     console.error('加载精选应用失败：', error)
+  } finally {
+    featuredAppsLoading.value = false
   }
 }
 
@@ -237,7 +245,7 @@ onMounted(() => {
       <!-- 我的作品 -->
       <div class="section">
         <h2 class="section-title">我的作品</h2>
-        <div class="app-grid">
+        <div class="app-grid" v-if="!myAppsLoading">
           <AppCard
             v-for="app in myApps"
             :key="app.id"
@@ -245,6 +253,9 @@ onMounted(() => {
             @view-chat="viewChat"
             @view-work="viewWork"
           />
+        </div>
+        <div class="app-grid" v-else>
+          <a-skeleton v-for="n in 3" :key="n" class="card-skeleton" active />
         </div>
         <div class="pagination-wrapper">
           <a-pagination
@@ -261,7 +272,7 @@ onMounted(() => {
       <!-- 精选案例 -->
       <div class="section">
         <h2 class="section-title">精选案例</h2>
-        <div class="featured-grid">
+        <div class="featured-grid" v-if="!featuredAppsLoading">
           <AppCard
             v-for="app in featuredApps"
             :key="app.id"
@@ -270,6 +281,9 @@ onMounted(() => {
             @view-chat="viewChat"
             @view-work="viewWork"
           />
+        </div>
+        <div class="featured-grid" v-else>
+          <a-skeleton v-for="n in 3" :key="n" class="card-skeleton" active />
         </div>
         <div class="pagination-wrapper">
           <a-pagination
@@ -688,6 +702,28 @@ onMounted(() => {
   .quick-actions .ant-btn {
     padding: 10px 18px;
     font-size: 14px;
+  }
+}
+
+/* 骨架屏卡片占位 */
+.card-skeleton {
+  min-height: 200px;
+  border-radius: 16px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* 无障碍：尊重用户减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  #homePage::before,
+  #homePage::after,
+  .hero-section::before {
+    animation: none !important;
+  }
+
+  .hero-title {
+    animation: none !important;
+    transform: perspective(300px) rotateX(8deg) !important;
   }
 }
 </style>
