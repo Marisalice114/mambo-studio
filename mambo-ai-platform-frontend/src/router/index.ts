@@ -1,19 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
-import UserLoginPage from '@/pages/user/UserLoginPage.vue'
-import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
-import UserProfilePage from '@/pages/user/UserProfilePage.vue'
-import UserSettingsPage from '@/pages/user/UserSettingsPage.vue'
-import UserAppManagePage from '@/pages/user/UserAppManagePage.vue'
-import UserManagePage from '@/pages/admin/UserManagePage.vue'
-import AppManagePage from '@/pages/admin/AppManagePage.vue'
-import AppChatPage from '@/pages/app/AppChatPage.vue'
-import AppEditPage from '@/pages/app/AppEditPage.vue'
-import ChatManagePage from "@/pages/admin/ChatManagePage.vue";
-import WorkflowPage from "@/pages/workflow/WorkflowPage.vue";
-import VipCenterPage from "@/pages/VipCenterPage.vue";
-import StyleDemoPage from "@/pages/StyleDemoPage.vue";
-import AvatarShowcasePage from "@/pages/AvatarShowcasePage.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,37 +12,37 @@ const router = createRouter({
     {
       path: '/user/login',
       name: '用户登录',
-      component: UserLoginPage,
+      component: () => import('@/pages/user/UserLoginPage.vue'),
     },
     {
       path: '/user/register',
       name: '用户注册',
-      component: UserRegisterPage,
+      component: () => import('@/pages/user/UserRegisterPage.vue'),
     },
     {
       path: '/user/profile',
       name: '个人信息',
-      component: UserProfilePage,
+      component: () => import('@/pages/user/UserProfilePage.vue'),
     },
     {
       path: '/user/settings',
       name: '账户设置',
-      component: UserSettingsPage,
+      component: () => import('@/pages/user/UserSettingsPage.vue'),
     },
     {
       path: '/user/apps',
       name: '我的应用',
-      component: UserAppManagePage,
+      component: () => import('@/pages/user/UserAppManagePage.vue'),
     },
     {
       path: '/admin/userManage',
       name: '用户管理',
-      component: UserManagePage,
+      component: () => import('@/pages/admin/UserManagePage.vue'),
     },
     {
       path: '/admin/appManage',
       name: '应用管理',
-      component: AppManagePage,
+      component: () => import('@/pages/admin/AppManagePage.vue'),
     },
     {
       path: '/admin/userApps/:userId',
@@ -66,37 +52,37 @@ const router = createRouter({
     {
       path: '/admin/chatManage',
       name: '对话管理',
-      component: ChatManagePage,
+      component: () => import('@/pages/admin/ChatManagePage.vue'),
     },
     {
       path: '/app/chat/:id',
       name: '应用对话',
-      component: AppChatPage,
+      component: () => import('@/pages/app/AppChatPage.vue'),
     },
     {
       path: '/app/edit/:id',
       name: '编辑应用',
-      component: AppEditPage,
+      component: () => import('@/pages/app/AppEditPage.vue'),
     },
     {
       path: '/workflow',
       name: 'AI工作流',
-      component: WorkflowPage,
+      component: () => import('@/pages/workflow/WorkflowPage.vue'),
     },
     {
       path: '/vip',
       name: 'VIP中心',
-      component: VipCenterPage,
+      component: () => import('@/pages/VipCenterPage.vue'),
     },
     {
       path: '/demo',
       name: '样式演示',
-      component: StyleDemoPage,
+      component: () => import('@/pages/StyleDemoPage.vue'),
     },
     {
       path: '/avatar',
       name: '头像展示',
-      component: AvatarShowcasePage,
+      component: () => import('@/pages/AvatarShowcasePage.vue'),
     },
   ],
 })

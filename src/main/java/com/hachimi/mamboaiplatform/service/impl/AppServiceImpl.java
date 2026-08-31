@@ -298,6 +298,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     App updateApp = new App();
     updateApp.setId(appId);
     updateApp.setDeployKey(deployKey);
+    updateApp.setDeployedTime(LocalDateTime.now());
     updateApp.setUpdateTime(LocalDateTime.now());
     // 调用保存
     boolean updateResult = this.updateById(updateApp);
@@ -356,7 +357,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     // 2.删除关联的对话历史
     // 这里不需要事务，因为删除对话历史失败不会影响应用删除
     try {
-      chatHistoryService.removeById(appId);
+      chatHistoryService.deleteByAppId(appId);
     } catch (Exception e) {
       log.error("删除应用关联的对话历史失败: {}", e.getMessage());
     }
