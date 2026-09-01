@@ -20,6 +20,7 @@ import com.hachimi.mamboaiplatform.model.vo.UserDetailVO;
 import com.hachimi.mamboaiplatform.model.vo.UserPublicVO;
 import com.hachimi.mamboaiplatform.ratelimit.annotation.RateLimit;
 import com.hachimi.mamboaiplatform.ratelimit.enums.RateLimitType;
+import com.hachimi.mamboaiplatform.service.RsaCryptoService;
 import com.hachimi.mamboaiplatform.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import jakarta.annotation.Resource;
@@ -41,6 +42,9 @@ public class UserController {
 
   @Resource
   private UserService userService;
+
+  @Resource
+  private RsaCryptoService rsaCryptoService;
 
   // ========== 管理员专用接口 - 使用 UserAdminVO ==========
 
@@ -133,8 +137,9 @@ public class UserController {
   public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
     ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
     String userAccount = userRegisterRequest.getUserAccount();
-    String userPassword = userRegisterRequest.getUserPassword();
-    String checkPassword = userRegisterRequest.getCheckPassword();
+    // 前端提交的是 RSA 加密后的密码，先解密再走原有 MD5 逻辑
+    String userPassword = rsaCryptoService.decryptPassword(userRegisterRequest.getUserPassword());
+    String checkPassword = rsaCryptoService.decryptPassword(userRegisterRequest.getCheckPassword());
     long result = userService.userRegister(userAccount, userPassword, checkPassword);
     return ResultUtils.success(result);
   }
@@ -149,7 +154,8 @@ public class UserController {
       HttpServletRequest request) {
     ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
     String userAccount = userLoginRequest.getUserAccount();
-    String userPassword = userLoginRequest.getUserPassword();
+    // 前端提交的是 RSA 加密后的密码，先解密再走原有 MD5 逻辑
+    String userPassword = rsaCryptoService.decryptPassword(userLoginRequest.getUserPassword());
     LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
     return ResultUtils.success(loginUserVO);
   }

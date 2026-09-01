@@ -88,6 +88,7 @@ import { userRegister } from '@/api/userController'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 import { UserOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue'
+import { encryptPassword } from '@/utils/crypto'
 
 const router = useRouter()
 
@@ -116,7 +117,13 @@ const validateCheckPassword = (rule: unknown, value: string, callback: (error?: 
  * @param values
  */
 const handleSubmit = async (values: API.UserRegisterRequest) => {
-  const res = await userRegister(values)
+  // 使用 RSA 公钥加密密码后再提交，防止明文传输
+  const encryptedPassword = await encryptPassword(values.userPassword)
+  const res = await userRegister({
+    userAccount: values.userAccount,
+    userPassword: encryptedPassword,
+    checkPassword: encryptedPassword,
+  })
   // 注册成功，跳转到登录页面
   if (res.data.code === 0) {
     message.success('注册成功')

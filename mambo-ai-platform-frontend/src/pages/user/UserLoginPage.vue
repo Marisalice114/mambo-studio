@@ -70,6 +70,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+import { encryptPassword } from '@/utils/crypto'
 
 const formState = reactive<API.UserLoginRequest>({
   userAccount: '',
@@ -84,7 +85,12 @@ const loginUserStore = useLoginUserStore()
  * @param values
  */
 const handleSubmit = async (values: Record<string, any>) => {
-  const res = await userLogin(values)
+  // 使用 RSA 公钥加密密码后再提交，避免明文传输
+  const encryptedPassword = await encryptPassword(values.userPassword)
+  const res = await userLogin({
+    userAccount: values.userAccount,
+    userPassword: encryptedPassword,
+  })
   // 登录成功，把登录态保存到全局状态中
   if (res.data.code === 0 && res.data.data) {
     await loginUserStore.fetchLoginUser()

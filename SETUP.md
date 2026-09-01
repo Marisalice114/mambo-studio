@@ -1,3 +1,14 @@
+---
+AIGC:
+  ContentProducer: '001191110102MAD55U9H0F10002'
+  ContentPropagator: '001191110102MAD55U9H0F10002'
+  Label: '1'
+  ProduceID: 'b48102ad-6c8d-4e44-919c-dac705db9d9a'
+  PropagateID: 'b48102ad-6c8d-4e44-919c-dac705db9d9a'
+  ReservedCode1: '6702ec1f-ac7a-4831-8025-63b9e663bb1e'
+  ReservedCode2: '6702ec1f-ac7a-4831-8025-63b9e663bb1e'
+---
+
 # 🚀 MamboStudio - 环境配置指南
 
 本文档将指导您如何完整配置 MamboStudio AI 代码生成平台的运行环境。
@@ -183,6 +194,42 @@ aliyun:
 pexels:
   api-key: your_pexels_api_key
 ```
+
+> **安全提示**：`application-local.yml` 已加入 `.gitignore`，其中包含 API 密钥、数据库密码和 RSA 私钥，**严禁提交到公共仓库**。
+
+#### 步骤 3: 配置 RSA 密码加密（登录/注册）
+
+前端登录/注册使用 RSA 公钥加密密码后再提交，后端用私钥解密后走 MD5 加盐哈希。私钥通过 `app.rsa.private-key-base64` 配置（PKCS#8 格式，Base64 编码）：
+
+```yaml
+app:
+  rsa:
+    private-key-base64: "你的RSA私钥Base64（PKCS#8，去掉PEM头尾）"
+```
+
+**生成 RSA 密钥对（2048 位）**：
+
+```bash
+# 生成私钥（PKCS#8）
+openssl genpkey -algorithm RSA -out rsa_private.pem -pkeyopt rsa_keygen_bits:2048
+# 导出公钥（SPKI）
+openssl rsa -pubin -in rsa_private.pem -pubout -out rsa_public.pem
+
+# 私钥转 Base64（去掉 PEM 头尾后填入 application-local.yml）
+openssl base64 -in rsa_private.pem -A
+
+# 公钥内容填入前端 src/utils/crypto.ts 的 PUBLIC_KEY 常量
+```
+
+**密钥轮换流程**：
+
+1. 生成新的密钥对（如上命令）
+2. 将新私钥 Base64 更新到 `application-local.yml` 的 `app.rsa.private-key-base64`
+3. 将新公钥 PEM 更新到前端 `mambo-ai-platform-frontend/src/utils/crypto.ts` 的 `PUBLIC_KEY` 常量
+4. 重启后端服务，重新构建/部署前端
+5. 旧密钥作废后及时删除
+
+> **注意**：前端公钥是公开信息（仅用于加密），后端私钥必须严格保密。两者必须配对，轮换时需同步更新。
 
 ### 3. 前端配置
 
