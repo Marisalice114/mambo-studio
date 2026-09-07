@@ -55,5 +55,15 @@ public class AppQueryRequest extends PageRequest implements Serializable {
      */
     private Boolean isVipOnly;
 
+    /**
+     * 关键词（模糊匹配应用名称 / initPrompt / codeGenType）
+     */
+    private String keyword;
+
+    /**
+     * 部署状态（null-不限制，true-已部署，false-未部署）
+     */
+    private Boolean deployed;
+
     private static final long serialVersionUID = 1L;
 }

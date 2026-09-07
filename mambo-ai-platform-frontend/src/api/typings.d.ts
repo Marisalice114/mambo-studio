@@ -20,6 +20,10 @@ declare namespace API {
     appId?: number
   }
 
+  type AppFavoriteAddRequest = {
+    appId?: number
+  }
+
   type AppQueryRequest = {
     pageNum?: number
     pageSize?: number
@@ -34,6 +38,8 @@ declare namespace API {
     priority?: number
     userId?: number
     isVipOnly?: boolean
+    keyword?: string
+    deployed?: boolean
   }
 
   type AppUpdateRequest = {
@@ -57,6 +63,7 @@ declare namespace API {
     createTime?: string
     updateTime?: string
     user?: UserPublicVO
+    isFavorite?: boolean
   }
 
   type BaseResponseAppVO = {
@@ -68,6 +75,12 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseInteger = {
+    code?: number
+    data?: number
     message?: string
   }
 
@@ -141,6 +154,10 @@ declare namespace API {
     code?: number
     data?: UserPublicVO
     message?: string
+  }
+
+  type BatchDeleteRequest = {
+    ids?: number[]
   }
 
   type cancelGenParams = {
@@ -250,6 +267,11 @@ declare namespace API {
     appId: number
     pageSize?: number
     lastCreateTime?: string
+  }
+
+  type listMyFavoriteAppByPageParams = {
+    pageNum?: number
+    pageSize?: number
   }
 
   type LoginUserVO = {

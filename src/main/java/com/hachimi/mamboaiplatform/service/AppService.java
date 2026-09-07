@@ -31,4 +31,12 @@ public interface AppService extends IService<App> {
     String deployApp(Long appId, User loginUser);
 
     void generateAppScreenshotAsync(Long appId, String appDeployUrl);
+
+    /**
+     * 批量删除应用（逐条调用 removeById 以复用级联清理逻辑）
+     *
+     * @param ids 应用 id 列表
+     * @return 成功删除的数量
+     */
+    int batchDeleteByIds(List<Long> ids);
 }

@@ -73,5 +73,10 @@ public class AppVO implements Serializable {
      */
     private UserPublicVO user;
 
+    /**
+     * 当前登录用户是否已收藏（需登录后查询才有效）
+     */
+    private Boolean isFavorite;
+
     private static final long serialVersionUID = 1L;
 }

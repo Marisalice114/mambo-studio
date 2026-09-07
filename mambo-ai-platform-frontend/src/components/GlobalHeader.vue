@@ -66,6 +66,11 @@
                     <AppstoreOutlined />
                     我的应用
                   </a-menu-item>
+                  <!-- 我的收藏 -->
+                  <a-menu-item @click="goToMyFavorites">
+                    <HeartOutlined />
+                    我的收藏
+                  </a-menu-item>
                   <!-- 账户设置 -->
                   <a-menu-item @click="goToSettings">
                     <SettingOutlined />
@@ -103,7 +108,8 @@ import {
   ClockCircleOutlined,
   UserOutlined,
   SettingOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  HeartOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { getUserAvatarUrl } from '@/utils/avatar'
@@ -259,6 +265,11 @@ const goToProfile = () => {
 // 跳转到我的应用
 const goToMyApps = () => {
   router.push('/user/apps')
+}
+
+// 跳转到我的收藏
+const goToMyFavorites = () => {
+  router.push('/user/favorites')
 }
 
 // 跳转到账户设置

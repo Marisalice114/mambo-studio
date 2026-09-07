@@ -18,6 +18,20 @@
           </a-tag>
           <span v-else>未知类型</span>
         </div>
+        <div v-if="showFavorite" class="info-item">
+          <span class="info-label">收藏：</span>
+          <a-button
+            type="primary"
+            size="small"
+            :class="{ 'favorite-btn--active': isFavorite }"
+            @click="handleToggleFavorite"
+          >
+            <template #icon>
+              <HeartOutlined />
+            </template>
+            {{ isFavorite ? '已收藏' : '收藏' }}
+          </a-button>
+        </div>
       </div>
 
       <!-- 操作栏（仅本人或管理员可见） -->
@@ -50,7 +64,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HeartOutlined } from '@ant-design/icons-vue'
 import UserInfo from './UserInfo.vue'
 import { formatTime } from '@/utils/time'
 import {formatCodeGenType} from "../utils/codeGenTypes.ts";
@@ -59,16 +73,19 @@ interface Props {
   open: boolean
   app?: API.AppVO
   showActions?: boolean
+  showFavorite?: boolean
 }
 
 interface Emits {
   (e: 'update:open', value: boolean): void
   (e: 'edit'): void
   (e: 'delete'): void
+  (e: 'toggle-favorite', app: API.AppVO): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showActions: false,
+  showFavorite: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -78,12 +95,20 @@ const visible = computed({
   set: (value) => emit('update:open', value),
 })
 
+const isFavorite = computed(() => Boolean(props.app?.isFavorite))
+
 const handleEdit = () => {
   emit('edit')
 }
 
 const handleDelete = () => {
   emit('delete')
+}
+
+const handleToggleFavorite = () => {
+  if (props.app) {
+    emit('toggle-favorite', props.app)
+  }
 }
 </script>
 
@@ -112,5 +137,11 @@ const handleDelete = () => {
 .app-actions {
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+.favorite-btn--active {
+  background: linear-gradient(135deg, #FF1493, #FF69B4) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(255, 20, 147, 0.3) !important;
 }
 </style>

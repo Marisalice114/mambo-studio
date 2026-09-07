@@ -30,6 +30,8 @@ import com.hachimi.mamboaiplatform.service.GenerationStatusService;
 import com.hachimi.mamboaiplatform.service.ChatHistoryService;
 import com.hachimi.mamboaiplatform.service.ScreenshotService;
 import com.hachimi.mamboaiplatform.service.UserService;
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
@@ -118,9 +120,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     String sortField = appQueryRequest.getSortField();
     String sortOrder = appQueryRequest.getSortOrder();
     Boolean isVipOnly = appQueryRequest.getIsVipOnly();
+    String keyword = appQueryRequest.getKeyword();
+    Boolean deployed = appQueryRequest.getDeployed();
     // 使用正确的 MyBatis-Flex QueryWrapper 语法
     // MyBatis-Flex 会自动忽略 null 值，无需手动判断
-    return QueryWrapper.create()
+    QueryWrapper queryWrapper = QueryWrapper.create()
         .eq("id", id)
         .like("appName", appName)
         .like("cover", cover)
@@ -129,8 +133,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         .eq("deployKey", deployKey)
         .eq("priority", priority)
         .eq("userId", userId)
-        .eq("isVipOnly", isVipOnly)
-        .orderBy(sortField, "ascend".equals(sortOrder));
+        .eq("isVipOnly", isVipOnly);
+    // 关键词：多字段模糊匹配（appName / initPrompt / codeGenType）
+    if (StrUtil.isNotBlank(keyword)) {
+      QueryColumn appNameCol = new QueryColumn("appName");
+      QueryColumn initPromptCol = new QueryColumn("initPrompt");
+      QueryColumn codeGenTypeCol = new QueryColumn("codeGenType");
+      QueryCondition condition = appNameCol.like(keyword)
+          .or(initPromptCol.like(keyword))
+          .or(codeGenTypeCol.like(keyword));
+      queryWrapper.and(condition);
+    }
+    // 部署状态：true-已部署（deployedTime 非空），false-未部署（deployedTime 为空）
+    if (deployed != null) {
+      if (deployed) {
+        queryWrapper.isNotNull("deployedTime");
+      } else {
+        queryWrapper.isNull("deployedTime");
+      }
+    }
+    queryWrapper.orderBy(sortField, "ascend".equals(sortOrder));
+    return queryWrapper;
   }
 
   @Override
@@ -383,6 +406,31 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
     // 4.删除应用
     return super.removeById(id);
+  }
+
+  /**
+   * 批量删除应用
+   * 逐条调用 removeById，以复用级联删除对话历史与磁盘代码/部署目录的逻辑
+   *
+   * @param ids 应用 id 列表
+   * @return 成功删除的数量
+   */
+  @Override
+  public int batchDeleteByIds(List<Long> ids) {
+    if (CollUtil.isEmpty(ids)) {
+      return 0;
+    }
+    int successCount = 0;
+    for (Long id : ids) {
+      try {
+        if (removeById(id)) {
+          successCount++;
+        }
+      } catch (Exception e) {
+        log.error("批量删除应用失败 appId={}: {}", id, e.getMessage());
+      }
+    }
+    return successCount;
   }
 
 }

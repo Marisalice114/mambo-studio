@@ -9,6 +9,18 @@
         <a-space>
           <a-button type="primary" @click="handleViewChat">查看对话</a-button>
           <a-button v-if="app.deployKey" type="default" @click="handleViewWork">查看作品</a-button>
+          <a-button
+            v-if="showFavorite"
+            type="default"
+            class="favorite-btn"
+            :class="{ 'favorite-btn--active': isFavorite }"
+            @click="handleToggleFavorite"
+          >
+            <template #icon>
+              <HeartOutlined />
+            </template>
+            {{ isFavorite ? '已收藏' : '收藏' }}
+          </a-button>
         </a-space>
       </div>
     </div>
@@ -29,21 +41,29 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { HeartOutlined } from '@ant-design/icons-vue'
+
 interface Props {
   app: API.AppVO
   featured?: boolean
+  showFavorite?: boolean
 }
 
 interface Emits {
   (e: 'view-chat', appId: string | number | undefined): void
   (e: 'view-work', app: API.AppVO): void
+  (e: 'toggle-favorite', app: API.AppVO): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   featured: false,
+  showFavorite: false,
 })
 
 const emit = defineEmits<Emits>()
+
+const isFavorite = computed(() => Boolean(props.app.isFavorite))
 
 const handleViewChat = () => {
   emit('view-chat', props.app.id)
@@ -51,6 +71,10 @@ const handleViewChat = () => {
 
 const handleViewWork = () => {
   emit('view-work', props.app)
+}
+
+const handleToggleFavorite = () => {
+  emit('toggle-favorite', props.app)
 }
 </script>
 
@@ -196,11 +220,31 @@ const handleViewWork = () => {
   font-weight: 600 !important;
 }
 
+.app-overlay .ant-btn-default {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+  color: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(15px) !important;
+  font-weight: 600 !important;
+}
+
 .app-overlay .ant-btn-default:hover {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.25)) !important;
   transform: translateY(-3px) scale(1.05) !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
   box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 收藏按钮样式 */
+.app-overlay .favorite-btn {
+  min-width: 90px;
+}
+
+.app-overlay .favorite-btn--active {
+  background: linear-gradient(135deg, #FF1493, #FF69B4) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 6px 20px rgba(255, 20, 147, 0.4) !important;
 }
 
 .app-info {

@@ -35,6 +35,11 @@ const router = createRouter({
       component: () => import('@/pages/user/UserAppManagePage.vue'),
     },
     {
+      path: '/user/favorites',
+      name: '我的收藏',
+      component: () => import('@/pages/user/UserFavoritePage.vue'),
+    },
+    {
       path: '/admin/userManage',
       name: '用户管理',
       component: () => import('@/pages/admin/UserManagePage.vue'),

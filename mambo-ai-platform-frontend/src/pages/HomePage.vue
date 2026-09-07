@@ -3,7 +3,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { addApp, listMyAppVoByPage, listGoodAppVoByPage, addFavorite, cancelFavorite } from '@/api/appController'
+import { CODE_GEN_TYPE_OPTIONS } from '@/utils/codeGenTypes'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 
@@ -34,12 +35,16 @@ const featuredAppsPage = reactive({
   total: 0,
 })
 
+// 搜索筛选条件
+const searchParams = reactive<API.AppQueryRequest>({
+  pageNum: 1,
+  pageSize: 6,
+})
+
 // 设置提示词
 const setPrompt = (prompt: string) => {
   userPrompt.value = prompt
 }
-
-// 优化提示词功能已移除
 
 // 创建应用
 const createApp = async () => {
@@ -62,7 +67,6 @@ const createApp = async () => {
 
     if (res.data.code === 0 && res.data.data) {
       message.success('应用创建成功')
-      // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
       await router.push(`/app/chat/${appId}`)
     } else {
@@ -81,6 +85,14 @@ const goToWorkflow = () => {
   router.push('/workflow')
 }
 
+// 搜索
+const doSearch = () => {
+  myAppsPage.current = 1
+  featuredAppsPage.current = 1
+  loadMyApps()
+  loadFeaturedApps()
+}
+
 // 加载我的应用
 const loadMyApps = async () => {
   if (!loginUserStore.loginUser.id) {
@@ -89,6 +101,7 @@ const loadMyApps = async () => {
 
   try {
     const res = await listMyAppVoByPage({
+      ...searchParams,
       pageNum: myAppsPage.current,
       pageSize: myAppsPage.pageSize,
       sortField: 'createTime',
@@ -110,6 +123,7 @@ const loadMyApps = async () => {
 const loadFeaturedApps = async () => {
   try {
     const res = await listGoodAppVoByPage({
+      ...searchParams,
       pageNum: featuredAppsPage.current,
       pageSize: featuredAppsPage.pageSize,
       sortField: 'createTime',
@@ -139,6 +153,32 @@ const viewWork = (app: API.AppVO) => {
   if (app.deployKey) {
     const url = getDeployUrl(app.deployKey)
     window.open(url, '_blank')
+  }
+}
+
+// 收藏 / 取消收藏
+const handleToggleFavorite = async (app: API.AppVO) => {
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    await router.push('/user/login')
+    return
+  }
+  if (!app.id) return
+
+  try {
+    const res = app.isFavorite
+      ? await cancelFavorite({ appId: app.id })
+      : await addFavorite({ appId: app.id })
+    if (res.data.code === 0) {
+      message.success(app.isFavorite ? '已取消收藏' : '收藏成功')
+      // 更新本地状态
+      app.isFavorite = !app.isFavorite
+    } else {
+      message.error('操作失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('收藏操作失败：', error)
+    message.error('收藏操作失败')
   }
 }
 
@@ -242,6 +282,37 @@ onMounted(() => {
         >
       </div>
 
+      <!-- 搜索筛选区 -->
+      <div class="search-section">
+        <a-input
+          v-model:value="searchParams.keyword"
+          placeholder="搜索应用名称/提示词/生成类型"
+          allow-clear
+          style="width: 320px"
+          @pressEnter="doSearch"
+        />
+        <a-select
+          v-model:value="searchParams.codeGenType"
+          placeholder="生成类型"
+          allow-clear
+          style="width: 150px"
+        >
+          <a-select-option v-for="opt in CODE_GEN_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </a-select-option>
+        </a-select>
+        <a-select
+          v-model:value="searchParams.deployed"
+          placeholder="部署状态"
+          allow-clear
+          style="width: 130px"
+        >
+          <a-select-option :value="true">已部署</a-select-option>
+          <a-select-option :value="false">未部署</a-select-option>
+        </a-select>
+        <a-button type="primary" @click="doSearch">搜索</a-button>
+      </div>
+
       <!-- 我的作品 -->
       <div class="section">
         <h2 class="section-title">我的作品</h2>
@@ -250,8 +321,10 @@ onMounted(() => {
             v-for="app in myApps"
             :key="app.id"
             :app="app"
+            :show-favorite="true"
             @view-chat="viewChat"
             @view-work="viewWork"
+            @toggle-favorite="handleToggleFavorite"
           />
         </div>
         <div class="app-grid" v-else>
@@ -278,8 +351,10 @@ onMounted(() => {
             :key="app.id"
             :app="app"
             :featured="true"
+            :show-favorite="true"
             @view-chat="viewChat"
             @view-work="viewWork"
+            @toggle-favorite="handleToggleFavorite"
           />
         </div>
         <div class="featured-grid" v-else>
@@ -597,6 +672,33 @@ onMounted(() => {
   color: #FF1493;
   transform: translateY(-4px) scale(1.03);
   box-shadow: 0 12px 30px rgba(255, 105, 180, 0.25);
+}
+
+/* 搜索筛选区 */
+.search-section {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 182, 193, 0.3);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(255, 105, 180, 0.12);
+}
+
+.search-section .ant-input,
+.search-section .ant-select {
+  border-radius: 12px !important;
+}
+
+.search-section .ant-input:focus,
+.search-section .ant-select-focused .ant-select-selector {
+  border-color: #FF69B4 !important;
+  box-shadow: 0 0 0 2px rgba(255, 105, 180, 0.1) !important;
 }
 
 /* 区域标题 */

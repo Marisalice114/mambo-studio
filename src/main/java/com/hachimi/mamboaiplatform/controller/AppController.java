@@ -1,10 +1,13 @@
 package com.hachimi.mamboaiplatform.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.text.csv.CsvWriter;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.hachimi.mamboaiplatform.annotation.AuthCheck;
 import com.hachimi.mamboaiplatform.common.BaseResponse;
+import com.hachimi.mamboaiplatform.common.BatchDeleteRequest;
 import com.hachimi.mamboaiplatform.common.DeleteRequest;
 import com.hachimi.mamboaiplatform.common.ResultUtils;
 import com.hachimi.mamboaiplatform.constant.AppConstant;
@@ -18,6 +21,7 @@ import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.vo.AppVO;
 import com.hachimi.mamboaiplatform.ratelimit.annotation.RateLimit;
 import com.hachimi.mamboaiplatform.ratelimit.enums.RateLimitType;
+import com.hachimi.mamboaiplatform.service.AppFavoriteService;
 import com.hachimi.mamboaiplatform.service.AppService;
 import com.hachimi.mamboaiplatform.service.GenerationStatusService;
 import com.hachimi.mamboaiplatform.service.ProjectDownloadService;
@@ -38,6 +42,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +70,9 @@ public class AppController {
 
   @Resource
   private GenerationStatusService generationStatusService;
+
+  @Resource
+  private AppFavoriteService appFavoriteService;
 
   /**
    * 应用聊天生成代码（流式 SSE）
@@ -430,6 +441,174 @@ public class AppController {
     String deployUrl = appService.deployApp(appId, loginUser);
 
     return ResultUtils.success(deployUrl);
+  }
+
+  /**
+   * 收藏应用
+   *
+   * @param appFavoriteAddRequest 收藏请求
+   * @param request               请求
+   * @return 是否成功
+   */
+  @PostMapping("/favorite/add")
+  public BaseResponse<Boolean> addFavorite(@RequestBody AppFavoriteAddRequest appFavoriteAddRequest,
+      HttpServletRequest request) {
+    ThrowUtils.throwIf(appFavoriteAddRequest == null || appFavoriteAddRequest.getAppId() == null,
+        ErrorCode.PARAMS_ERROR);
+    User loginUser = userService.getLoginUser(request);
+    boolean result = appFavoriteService.addFavorite(appFavoriteAddRequest.getAppId(), loginUser);
+    return ResultUtils.success(result);
+  }
+
+  /**
+   * 取消收藏
+   *
+   * @param appFavoriteAddRequest 收藏请求（仅使用 appId）
+   * @param request               请求
+   * @return 是否成功
+   */
+  @PostMapping("/favorite/cancel")
+  public BaseResponse<Boolean> cancelFavorite(@RequestBody AppFavoriteAddRequest appFavoriteAddRequest,
+      HttpServletRequest request) {
+    ThrowUtils.throwIf(appFavoriteAddRequest == null || appFavoriteAddRequest.getAppId() == null,
+        ErrorCode.PARAMS_ERROR);
+    User loginUser = userService.getLoginUser(request);
+    boolean result = appFavoriteService.cancelFavorite(appFavoriteAddRequest.getAppId(), loginUser);
+    return ResultUtils.success(result);
+  }
+
+  /**
+   * 分页获取当前用户收藏的应用列表
+   *
+   * @param pageNum  页码
+   * @param pageSize 每页条数
+   * @param request  请求
+   * @return 收藏应用分页列表
+   */
+  @GetMapping("/favorite/list")
+  public BaseResponse<Page<AppVO>> listMyFavoriteAppByPage(@RequestParam(defaultValue = "1") long pageNum,
+      @RequestParam(defaultValue = "10") long pageSize,
+      HttpServletRequest request) {
+    ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
+    User loginUser = userService.getLoginUser(request);
+    Page<AppVO> appVOPage = appFavoriteService.listFavoriteAppByPage(pageNum, pageSize, loginUser);
+    return ResultUtils.success(appVOPage);
+  }
+
+  /**
+   * 用户批量删除自己的应用
+   *
+   * @param batchDeleteRequest 批量删除请求
+   * @param request            请求
+   * @return 成功删除数量
+   */
+  @PostMapping("/batch/delete")
+  public BaseResponse<Integer> batchDeleteApp(@RequestBody BatchDeleteRequest batchDeleteRequest,
+      HttpServletRequest request) {
+    if (batchDeleteRequest == null || CollUtil.isEmpty(batchDeleteRequest.getIds())) {
+      throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    }
+    User loginUser = userService.getLoginUser(request);
+    List<Long> ids = batchDeleteRequest.getIds();
+    // 逐条校验归属权（仅本人或管理员可删除），并收集可删除的 id
+    List<Long> deletableIds = new java.util.ArrayList<>();
+    for (Long id : ids) {
+      if (id == null || id <= 0) {
+        continue;
+      }
+      App app = appService.getById(id);
+      if (app == null) {
+        continue;
+      }
+      if (app.getUserId().equals(loginUser.getId()) || UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+        deletableIds.add(id);
+      }
+    }
+    if (CollUtil.isEmpty(deletableIds)) {
+      return ResultUtils.success(0);
+    }
+    int successCount = appService.batchDeleteByIds(deletableIds);
+    return ResultUtils.success(successCount);
+  }
+
+  /**
+   * 管理员批量删除应用
+   *
+   * @param batchDeleteRequest 批量删除请求
+   * @return 成功删除数量
+   */
+  @PostMapping("/admin/batch/delete")
+  @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+  public BaseResponse<Integer> batchDeleteAppByAdmin(@RequestBody BatchDeleteRequest batchDeleteRequest) {
+    if (batchDeleteRequest == null || CollUtil.isEmpty(batchDeleteRequest.getIds())) {
+      throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    }
+    List<Long> ids = batchDeleteRequest.getIds();
+    int successCount = appService.batchDeleteByIds(ids);
+    return ResultUtils.success(successCount);
+  }
+
+  /**
+   * 导出应用列表为 CSV（按当前筛选条件导出）
+   *
+   * @param appQueryRequest 查询请求（筛选条件）
+   * @param request         请求
+   * @param response        响应
+   */
+  @PostMapping("/export")
+  public void exportAppList(@RequestBody(required = false) AppQueryRequest appQueryRequest,
+      HttpServletRequest request,
+      HttpServletResponse response) {
+    User loginUser = userService.getLoginUser(request);
+    if (appQueryRequest == null) {
+      appQueryRequest = new AppQueryRequest();
+    }
+    // 仅导出当前用户的应用（管理员导出全部）
+    boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
+    if (!isAdmin) {
+      appQueryRequest.setUserId(loginUser.getId());
+    }
+    appQueryRequest.setPageNum(1);
+    appQueryRequest.setPageSize(10000);
+    QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
+    List<App> appList = appService.list(queryWrapper);
+    if (CollUtil.isEmpty(appList)) {
+      appList = new java.util.ArrayList<>();
+    }
+    // 设置响应头，触发浏览器下载
+    response.setContentType("text/csv;charset=UTF-8");
+    response.setCharacterEncoding("UTF-8");
+    // 文件名编码，兼容浏览器下载中文文件名
+    String fileName = "app-list-" + System.currentTimeMillis() + ".csv";
+    String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+    response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
+    try {
+      PrintWriter writer = response.getWriter();
+      // 使用 Hutool CsvWriter 输出（构造入参 Writer，自动处理转义与换行）
+      CsvWriter csvWriter = new CsvWriter(writer);
+      // 表头
+      csvWriter.write(
+          new String[] { "id", "appName", "codeGenType", "cover", "priority", "isVipOnly", "deployed", "createTime",
+              "updateTime" });
+      // 数据行
+      for (App app : appList) {
+        csvWriter.write(new String[] {
+            String.valueOf(app.getId()),
+            app.getAppName() == null ? "" : app.getAppName(),
+            app.getCodeGenType() == null ? "" : app.getCodeGenType(),
+            app.getCover() == null ? "" : app.getCover(),
+            String.valueOf(app.getPriority()),
+            app.getIsVipOnly() == null ? "" : (app.getIsVipOnly() ? "是" : "否"),
+            app.getDeployedTime() == null ? "否" : "是",
+            app.getCreateTime() == null ? "" : app.getCreateTime().toString(),
+            app.getUpdateTime() == null ? "" : app.getUpdateTime().toString()
+        });
+      }
+      csvWriter.flush();
+      csvWriter.close();
+    } catch (IOException e) {
+      throw new BusinessException(ErrorCode.SYSTEM_ERROR, "导出失败：" + e.getMessage());
+    }
   }
 
 }

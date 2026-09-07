@@ -210,3 +210,78 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
     ...(options || {}),
   })
 }
+
+/** 收藏应用 POST /app/favorite/add */
+export async function addFavorite(body: API.AppFavoriteAddRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/favorite/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 取消收藏 POST /app/favorite/cancel */
+export async function cancelFavorite(body: API.AppFavoriteAddRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/favorite/cancel', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 分页获取我的收藏应用列表 GET /app/favorite/list */
+export async function listMyFavoriteAppByPage(
+  params: API.listMyFavoriteAppByPageParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageAppVO>('/app/favorite/list', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
+/** 用户批量删除应用 POST /app/batch/delete */
+export async function batchDeleteApp(body: API.BatchDeleteRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseInteger>('/app/batch/delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 管理员批量删除应用 POST /app/admin/batch/delete */
+export async function batchDeleteAppByAdmin(body: API.BatchDeleteRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseInteger>('/app/admin/batch/delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 导出应用列表 CSV POST /app/export */
+export async function exportAppList(body: API.AppQueryRequest, options?: { [key: string]: any }) {
+  return request<any>('/app/export', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    responseType: 'blob',
+    ...(options || {}),
+  })
+}

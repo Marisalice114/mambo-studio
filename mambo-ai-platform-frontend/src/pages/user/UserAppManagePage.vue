@@ -59,11 +59,39 @@
       </a-row>
     </div>
 
+    <!-- 批量操作工具条 -->
+    <div class="batch-toolbar">
+      <a-space>
+        <a-popconfirm
+          title="确定要删除选中的应用吗？"
+          ok-text="确定"
+          cancel-text="取消"
+          :disabled="selectedRowKeys.length === 0"
+          @confirm="handleBatchDelete"
+        >
+          <a-button danger :disabled="selectedRowKeys.length === 0">
+            <template #icon>
+              <DeleteOutlined />
+            </template>
+            批量删除{{ selectedRowKeys.length > 0 ? `（${selectedRowKeys.length}）` : '' }}
+          </a-button>
+        </a-popconfirm>
+        <a-button @click="handleExport">
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          导出 CSV
+        </a-button>
+      </a-space>
+    </div>
+
     <!-- 表格 - 用户版本，移除优先级和创建者列 -->
     <a-table
       :columns="columns"
       :data-source="data"
       :pagination="pagination"
+      :row-selection="rowSelection"
+      :row-key="(record: API.AppVO) => record.id"
       @change="doTableChange"
       :scroll="{ x: 1000 }"
     >
@@ -111,7 +139,8 @@
 import { computed, onMounted, reactive, ref, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { listMyAppVoByPage, deleteApp as deleteAppApi } from '@/api/appController'
+import { DeleteOutlined, DownloadOutlined } from '@ant-design/icons-vue'
+import { listMyAppVoByPage, deleteApp as deleteAppApi, batchDeleteApp, exportAppList } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import { useLoginUserStore } from '@/stores/loginUser'
@@ -219,8 +248,9 @@ const currentSort = ref<{ field: string; order: 'asc' | 'desc' } | null>(null)
 
 const handleSort = (field: string, order: 'asc' | 'desc') => {
   // 将排序参数写入 searchParams，交由后端排序
+  // 后端只认 "ascend" 为升序，其余值按降序处理，故此处做映射
   searchParams.sortField = field
-  searchParams.sortOrder = order
+  searchParams.sortOrder = order === 'asc' ? 'ascend' : 'descend'
   searchParams.pageNum = 1
   fetchData()
   message.success(`已按${field}${order === 'asc' ? '升序' : '降序'}排序`)
@@ -287,6 +317,65 @@ const deleteApp = async (id: number) => {
   }
 }
 
+// 选中行
+const selectedRowKeys = ref<Array<number | undefined>>([])
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys: any[]) => {
+    selectedRowKeys.value = keys
+  },
+}))
+
+// 批量删除
+const handleBatchDelete = async () => {
+  const ids = selectedRowKeys.value.filter((id) => id != null) as number[]
+  if (ids.length === 0) {
+    message.warning('请先选择要删除的应用')
+    return
+  }
+  try {
+    const res = await batchDeleteApp({ ids })
+    if (res.data.code === 0) {
+      message.success(`批量删除成功，共删除 ${res.data.data ?? 0} 个应用`)
+      selectedRowKeys.value = []
+      await fetchData()
+    } else {
+      message.error('批量删除失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('批量删除失败', error)
+    message.error('批量删除失败')
+  }
+}
+
+// 导出 CSV
+const handleExport = async () => {
+  try {
+    const res = await exportAppList({
+      ...searchParams,
+    })
+    if (res && res.data) {
+      // blob 下载
+      const blob = new Blob([res.data])
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `app-list-${Date.now()}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } else {
+      message.error('导出失败')
+    }
+  } catch (error) {
+    console.error('导出失败', error)
+    message.error('导出失败')
+  }
+}
+
 // 页面加载时获取数据
 onMounted(() => {
   fetchData()
@@ -331,6 +420,12 @@ onMounted(() => {
 
 .stats-container {
   margin-bottom: 24px;
+}
+
+.batch-toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .stats-container .ant-card {

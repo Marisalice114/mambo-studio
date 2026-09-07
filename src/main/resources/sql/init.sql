@@ -64,3 +64,15 @@ create table chat_history
     INDEX idx_createTime (createTime),             -- 提升基于时间的查询性能
     INDEX idx_appId_createTime (appId, createTime) -- 游标查询核心索引
 ) comment '对话历史' collate = utf8mb4_unicode_ci;
+
+-- 应用收藏表
+create table if not exists app_favorite
+(
+    id         bigint                             not null comment 'id（雪花ID）' primary key,
+    userId     bigint                             not null comment '收藏用户id',
+    appId      bigint                             not null comment '被收藏的应用id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    UNIQUE KEY uk_user_app (userId, appId),      -- 同一用户对同一应用只能收藏一次
+    INDEX idx_userId (userId),                   -- 提升按用户查询收藏的性能
+    INDEX idx_appId (appId)                      -- 提升按应用查询收藏的性能
+) comment '应用收藏' collate = utf8mb4_unicode_ci;
