@@ -20,12 +20,18 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApOYokieWoA3ilZ5r+mOiuhuk7N8cDBSW6yXf
  */
 export async function encryptPassword(plainPassword: string): Promise<string> {
   const encoder = new TextEncoder()
-  const keyData = encoder.encode(PUBLIC_KEY)
+
+  // 将 PEM 字符串转换为 DER 二进制（SPKI importKey 需要 DER 字节，而非 PEM 文本）
+  const pemBody = PUBLIC_KEY
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/\s+/g, '')
+  const derBytes = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0))
 
   // 导入公钥（SPKI 格式）
   const publicKey = await crypto.subtle.importKey(
     'spki',
-    keyData,
+    derBytes,
     {
       name: 'RSA-OAEP',
       hash: 'SHA-256',

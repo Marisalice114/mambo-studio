@@ -14,10 +14,12 @@ import com.hachimi.mamboaiplatform.core.handler.StreamHandlerExecutor;
 import com.hachimi.mamboaiplatform.exception.BusinessException;
 import com.hachimi.mamboaiplatform.exception.ErrorCode;
 import com.hachimi.mamboaiplatform.exception.ThrowUtils;
+import com.hachimi.mamboaiplatform.mapper.AppFavoriteMapper;
 import com.hachimi.mamboaiplatform.mapper.AppMapper;
 import com.hachimi.mamboaiplatform.model.dto.app.AppAddRequest;
 import com.hachimi.mamboaiplatform.model.dto.app.AppQueryRequest;
 import com.hachimi.mamboaiplatform.model.entity.App;
+import com.hachimi.mamboaiplatform.model.entity.AppFavorite;
 import com.hachimi.mamboaiplatform.model.entity.User;
 import com.hachimi.mamboaiplatform.model.enums.ChatHistoryMessageTypeEnum;
 import com.hachimi.mamboaiplatform.model.enums.CodeGenTypeEnum;
@@ -38,12 +40,15 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +67,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
   @Resource
   private UserService userService;
+
+  @Resource
+  private AppFavoriteMapper appFavoriteMapper;
 
   @Resource
   private AiCodeGeneratorFacade aiCodeGeneratorFacade;
@@ -100,6 +108,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
       User user = userService.getById(userId);
       UserPublicVO userPublicVO = userService.getUserPublicVO(user);
       appVO.setUser(userPublicVO);
+    }
+    // 填充当前登录用户的收藏状态
+    User loginUser = getLoginUserQuietly();
+    if (loginUser != null && app.getId() != null) {
+      appVO.setIsFavorite(isAppFavorite(loginUser.getId(), app.getId()));
     }
     return appVO;
   }
@@ -167,12 +180,59 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         .collect(Collectors.toSet());
     Map<Long, UserPublicVO> UserPublicVOMap = userService.listByIds(userIds).stream()
         .collect(Collectors.toMap(User::getId, userService::getUserPublicVO));
+    // 批量查询当前登录用户已收藏的 appId 集合，避免逐条查询的 N+1 问题
+    Set<Long> favoriteAppIds = getLoginUserFavoriteAppIds();
     return appList.stream().map(app -> {
       AppVO appVO = getAppVO(app);
       UserPublicVO userPublicVO = UserPublicVOMap.get(app.getUserId());
       appVO.setUser(userPublicVO);
+      if (app.getId() != null) {
+        appVO.setIsFavorite(favoriteAppIds.contains(app.getId()));
+      }
       return appVO;
     }).collect(Collectors.toList());
+  }
+
+  /**
+   * 静默获取当前登录用户（未登录返回 null，不抛异常）
+   */
+  private User getLoginUserQuietly() {
+    try {
+      ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+      if (attributes == null) {
+        return null;
+      }
+      return userService.getLoginUser(attributes.getRequest());
+    } catch (BusinessException e) {
+      // 未登录
+      return null;
+    }
+  }
+
+  /**
+     * 批量查询当前登录用户已收藏的 appId 集合（未登录返回空集合）
+     */
+  private Set<Long> getLoginUserFavoriteAppIds() {
+    User loginUser = getLoginUserQuietly();
+    if (loginUser == null || loginUser.getId() == null) {
+      return new HashSet<>();
+    }
+    QueryWrapper favoriteWrapper = QueryWrapper.create()
+        .select("appId")
+        .eq("userId", loginUser.getId());
+    return appFavoriteMapper.selectListByQuery(favoriteWrapper).stream()
+        .map(AppFavorite::getAppId)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * 判断用户是否已收藏某应用
+   */
+  private boolean isAppFavorite(Long userId, Long appId) {
+    QueryWrapper favoriteWrapper = QueryWrapper.create()
+        .eq("userId", userId)
+        .eq("appId", appId);
+    return appFavoriteMapper.selectCountByQuery(favoriteWrapper) > 0;
   }
 
   @Override
