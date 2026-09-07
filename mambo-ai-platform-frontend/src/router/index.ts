@@ -74,16 +74,6 @@ const router = createRouter({
       name: 'VIP中心',
       component: () => import('@/pages/VipCenterPage.vue'),
     },
-    {
-      path: '/demo',
-      name: '样式演示',
-      component: () => import('@/pages/StyleDemoPage.vue'),
-    },
-    {
-      path: '/avatar',
-      name: '头像展示',
-      component: () => import('@/pages/AvatarShowcasePage.vue'),
-    },
   ],
 })
 
